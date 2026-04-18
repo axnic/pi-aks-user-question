@@ -1,0 +1,145 @@
+# =============================================================================
+# pi-aks-user-question — Development Environment
+# =============================================================================
+# Manages the Node runtime, linting tools, and build tasks for the extension.
+#
+# First run:
+#   mise trust      # Trust this config (prompted on first use)
+#   mise install    # Install all pinned tools
+#
+# Daily workflow:
+#   mise run lint       # Check everything
+#   mise run lint:fix   # Fix what can be fixed
+#   mise run build      # Bundle extension → dist/index.js
+#
+# All tasks and their short aliases:
+#   lint                  (l)    — run Trunk (check only)
+#   lint:fix              (lf)   — run Trunk and auto-fix safe issues
+#   lint:commitlint       (lc)   — commitlint: validate last commit message
+#   build                 (b)    — bundle src/ to dist/index.js
+# =============================================================================
+
+# =============================================================================
+# Settings
+# =============================================================================
+# jobs     = 8     — parallel tool installs and task executions (default: 4).
+#                    Tune down if your machine has fewer cores.
+# lockfile = true  — pin exact tool versions in mise.lock so the whole team
+#                    installs identical binaries. Commit mise.lock to git.
+# =============================================================================
+
+[settings]
+jobs = 8
+lockfile = true
+experimental = true
+
+# =============================================================================
+# Environment
+# =============================================================================
+# Extends PATH so that locally-installed npm binaries (tsc, vitest, …)
+# are available without a global install or `npx` prefix.
+# =============================================================================
+
+[env]
+_.path = ["{{config_root}}/node_modules/.bin"]
+TRUNK_TELEMETRY = "off"                        # Disable Trunk telemetry by default for local runs
+
+# =============================================================================
+# Tools
+# =============================================================================
+
+[tools]
+node = "lts"     # JavaScript runtime  (package.json engines: >=24)
+pnpm = "10.33"   # Package manager
+trunk = "latest" # Trunk CLI (code quality platform)
+
+# =============================================================================
+# Prepare
+# =============================================================================
+# Steps that run automatically after `mise install` (or `mise run prepare`).
+# =============================================================================
+
+[prepare.pnpm]
+auto = true
+
+# =============================================================================
+# Linters
+# =============================================================================
+# Trunk is the single entrypoint for all linting and formatting. It runs all
+# configured checks in one pass (see .trunk/trunk.yaml for the full list).
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Trunk — All-in-one code quality platform: linters, formatters and more, all
+# configured via .trunk/trunk.yaml. Trunk runs all configured checks in a single
+# pass, so we expose it as a single task for all linting and formatting needs.
+#
+# Docs: https://trunk.io/docs/cli/check
+# Config: .trunk/trunk.yaml
+# -----------------------------------------------------------------------------
+
+[tasks.lint]
+description = "Lint all files with Trunk (check only)"
+alias = "l"
+run = "trunk check --all"
+
+[tasks."lint:fix"]
+description = "Lint all files with Trunk and auto-fix safe issues"
+alias = "lf"
+run = "trunk check --all --fix"
+
+# -----------------------------------------------------------------------------
+# commitlint — validates commit messages against the conventional commit rules
+# defined in .commitlintrc.js. Useful to run manually after amending a commit.
+# The commit-msg git hook (via Trunk actions) runs this automatically on commit.
+#
+# Docs: https://commitlint.js.org/#/cli
+# Config: .commitlintrc.js
+# -----------------------------------------------------------------------------
+
+[tasks."lint:commitlint"]
+description = "Validate the last commit message against conventional commit rules"
+alias = "lc"
+run = "commitlint --from HEAD~1 --to HEAD --verbose"
+
+# =============================================================================
+# Build
+# =============================================================================
+# build — bundles index.ts + form/ into dist/index.js via esbuild.
+#         Skipped by mise when sources are unchanged.
+# =============================================================================
+
+[tasks.build]
+description = "Bundle the extension to dist/index.js with esbuild"
+alias = "b"
+run = "node build.mjs"
+sources = ["src/**/*.ts", "build.mjs"]
+
+# =============================================================================
+# Dependencies
+# =============================================================================
+# deps:upgrade  (du)  — interactively bump all packages to their latest
+#                       published versions.
+#                       Always run `pnpm test` and `mise run build` afterwards
+#                       to confirm the bump did not break anything.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# pnpm upgrade — interactive dependency upgrade.
+# Presents each outdated package one by one so you can accept or skip each bump
+# individually. Flags used:
+#
+#   --interactive  — confirm each upgrade individually
+#   --latest       — consider ALL published versions, ignoring the semver range
+#
+# After upgrading, always validate with:
+#   pnpm test
+#   mise run build
+#
+# Docs: https://pnpm.io/cli/upgrade
+# -----------------------------------------------------------------------------
+
+[tasks."deps:upgrade"]
+description = "Interactively upgrade all dependencies to their latest versions"
+alias = "du"
+run = "pnpm upgrade --interactive --latest"

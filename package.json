@@ -1,0 +1,71 @@
+{
+  "name": "@axnic/pi-aks-user-question",
+  "version": "0.0.0",
+  "description": "Pi extension — lets LLMs ask structured questions to the user via an interactive TUI form",
+  "author": "axnic",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/axnic/pi-aks-user-question.git"
+  },
+  "homepage": "https://github.com/axnic/pi-aks-user-question#readme",
+  "bugs": {
+    "url": "https://github.com/axnic/pi-aks-user-question/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-extension",
+    "tui",
+    "form",
+    "interactive",
+    "user-input"
+  ],
+  "dependencies": {
+    "@mariozechner/pi-ai": "^0.67.67",
+    "@mariozechner/pi-coding-agent": "^0.67.67",
+    "@mariozechner/pi-tui": "^0.67.67",
+    "@sinclair/typebox": "^0.34.0"
+  },
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "mise run build",
+    "clean": "rimraf dist",
+    "prepublishOnly": "pnpm run clean && pnpm run build && pnpm test && node scripts/prepare-publish-readmes.mjs prepare",
+    "postpublish": "node scripts/prepare-publish-readmes.mjs restore",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "mise run lint",
+    "lint:fix": "mise run lint:fix"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/types": "^19.5.0",
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.0",
+    "rimraf": "^6.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  },
+  "pi": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@10.33.0"
+}

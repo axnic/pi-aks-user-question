@@ -1,0 +1,21 @@
+{
+  // Type-check configuration.
+  //
+  // Covers all sources under src/ (index.ts, form/, schema.ts, types.ts, …).
+  // During local development, pi loads .ts files directly — no build needed.
+  // Run `mise run build` (node build.mjs) to emit a bundled dist/index.js.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "lib": ["ES2022"],
+    "noEmit": true,
+    "strict": true,
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.spec.mjs"]
+}

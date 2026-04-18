@@ -1,0 +1,196 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+#
+# =============================================================================
+# Publish packages — push all workspace packages to npm
+# =============================================================================
+# Triggered automatically when the Release workflow completes successfully.
+# The release is created as a draft by the Release workflow; this workflow
+# publishes it only after npm publishing and asset upload succeed.
+#
+# Security model — SLSA Build L2:
+#   • npm provenance via GitHub OIDC (--provenance)
+#   • CycloneDX SBOMs generated per workspace package via Syft
+#   • SBOMs and publish summary signed keylessly via cosign (Sigstore/Rekor)
+#   • All signed artefacts attached to the GitHub Release
+#
+# Required environment: "npm" (deployment gate / protection rules)
+# =============================================================================
+
+name: Publish packages to npm
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: npm-publish-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  # ── Validate ──────────────────────────────────────────────────────────────
+  validate:
+    name: ✅ Validate (typecheck · tests · build)
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: 🔧 Install tools via mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: true
+
+      - name: 💾 Cache pnpm store
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.local/share/pnpm/store/v3
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏷️ Type-check
+        run: tsc --noEmit -p tsconfig.json
+
+      - name: 🧪 Run tests
+        run: pnpm test
+
+      - name: 🏗️ Build all
+        run: mise run build
+
+  # ── Publish ───────────────────────────────────────────────────────────────
+  publish:
+    name: 🚀 Publish all workspace packages
+    if: github.event.workflow_run.conclusion == 'success'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: npm
+      url: https://www.npmjs.com/org/axnic
+    permissions:
+      contents: write # upload release assets
+      id-token: write # OIDC → npm provenance
+
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: 🔖 Resolve release tag
+        id: tag
+        run: |
+          # head_sha is the commit the Release workflow was dispatched against.
+          # The Release workflow creates a version-bump commit *after* head_sha
+          # and tags it, so we cannot use --exact-match HEAD directly.
+          # Instead: fetch all tags, then find the newest semver tag that is a
+          # descendant of head_sha — that is always the version-bump commit.
+          git fetch --tags origin
+          TAG=$(git tag -l 'v[0-9]*' --sort=-version:refname \
+            | while read -r t; do
+                if git merge-base --is-ancestor \
+                    "${{ github.event.workflow_run.head_sha }}" "$t" 2>/dev/null; then
+                  echo "$t"; break
+                fi
+              done)
+          if [[ -z "$TAG" ]]; then
+            echo "::error::No release tag found that descends from ${{ github.event.workflow_run.head_sha }}. Ensure the Release workflow pushed a tag before completing."
+            exit 1
+          fi
+          git checkout "$TAG"
+          echo "name=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: 🔧 Install tools via mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: false
+
+      - name: 💾 Cache pnpm store
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.local/share/pnpm/store/v3
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ Build all
+        run: mise run build
+
+      # ── SBOM generation ──────────────────────────────────────────────────
+      - name: 🔧 Install Syft
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+
+      - name: 🧾 Generate CycloneDX SBOM
+        run: |
+          syft scan dir:. -o cyclonedx-json=sbom-extension.json
+
+      # ── Publish ───────────────────────────────────────────────────────────
+      # actions/setup-node writes a .npmrc that pnpm reads for registry and
+      # auth configuration. Without it, pnpm has no registry context and
+      # fails with ENEEDAUTH even when id-token: write is granted. No
+      # NODE_AUTH_TOKEN is set so the OIDC trusted-publishers flow handles auth.
+      - name: 🔧 Configure npm registry for pnpm
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          registry-url: https://registry.npmjs.org/
+
+      - name: 🚀 Publish all workspace packages
+        run: |
+          pnpm publish \
+            --provenance \
+            --access public \
+            --no-git-checks \
+            --report-summary
+
+      # ── Sign artefacts with cosign (keyless OIDC) ────────────────────────
+      - name: 🔧 Install cosign
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+
+      - name: ✍️ Sign SBOM and publish summary
+        run: |
+          cosign sign-blob --yes \
+            --output-signature sbom-extension.json.sig \
+            --output-certificate sbom-extension.json.crt \
+            sbom-extension.json
+          cosign sign-blob --yes \
+            --output-signature pnpm-publish-summary.json.sig \
+            --output-certificate pnpm-publish-summary.json.crt \
+            pnpm-publish-summary.json
+
+      # ── Attach artefacts and publish release ─────────────────────────────
+      - name: 📤 Attach artefacts to GitHub Release
+        run: |
+          gh release upload "${{ steps.tag.outputs.name }}" \
+            sbom-extension.json \
+            sbom-extension.json.sig \
+            sbom-extension.json.crt \
+            pnpm-publish-summary.json \
+            pnpm-publish-summary.json.sig \
+            pnpm-publish-summary.json.crt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🚀 Publish GitHub Release
+        run: |
+          TAG="${{ steps.tag.outputs.name }}"
+          if [[ "$TAG" == *"-rc."* ]]; then
+            gh release edit "$TAG" --draft=false --prerelease
+          else
+            gh release edit "$TAG" --draft=false --latest
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

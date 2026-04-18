@@ -1,0 +1,91 @@
+name: Bug report
+description: Something isn't working as expected? Let us know!
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill this out. The more detail you provide, the faster we can investigate.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One sentence describing the bug.
+      placeholder: e.g. "S.number() validator fires even when the field is optional and empty"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the project is affected?
+      options:
+        - Form – TUI rendering and layout
+        - Form – state machine and key handling
+        - Schema – tool parameter validation
+        - Validation – text input format checks
+        - Docs / README
+        - Tooling / build / tests
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      description: Run `pnpm list pi-aks-user-question` or check `package.json`.
+      placeholder: e.g. 0.3.1
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js version
+      description: Run `node --version`.
+      placeholder: e.g. v24.0.0
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps (or a minimal tool call) that reliably trigger the bug.
+      placeholder: |
+        1. Call ask_user_question with `{ "questions": [{ "type": "choice", ... }] }`
+        2. Select an option and press enter
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened? Paste any error messages, stack traces, or screenshots here.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: ai_generated
+    attributes:
+      label: Created by AI
+      description: Check this box if this issue was created or filled by an AI agent. If checked, briefly note the tool used and confirm a human review.
+      options:
+        - This issue was created or filled by an AI agent
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Anything else that might help — related issues, workarounds you've tried, links, etc.

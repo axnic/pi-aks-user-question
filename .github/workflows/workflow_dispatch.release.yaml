@@ -1,0 +1,347 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+#
+# =============================================================================
+# Release — create a versioned release from the GitHub UI
+# =============================================================================
+# Triggered manually via Actions → Release → Run workflow.
+#
+# What it does:
+#   1. Computes the next version automatically from the last git tag
+#   2. Bumps the version in package.json
+#   3. Runs typecheck + tests + build
+#   4. Commits the version bump with a Conventional Commit message
+#   5. Creates and pushes a v<version> git tag
+#   6. Generates polished release notes via Copilot CLI (deterministic draft + LLM polish)
+#   7. Opens a GitHub Release (--prerelease for RC, --latest for stable)
+#
+# Bump types:
+#   patch / minor / major   → stable release computed from the last stable tag
+#   rc-patch / rc-minor / rc-major → release candidate; increments the RC
+#                             counter if one already exists for the target
+#
+# Release note scope:
+#   RC     → commits since the last tag (RC or stable)
+#   stable → commits since the last stable (non-RC) tag, so RC commits
+#            are included in the final release summary
+#
+# Publishing to npm is handled by workflow_run.publish.yaml, triggered
+# automatically when this release is published.
+#
+# Prerequisites:
+#   • CI_APP_ID and CI_APP_PRIVATE_KEY secrets must be set for the axnic-bot
+#     GitHub App. The app is a bypass actor in the branch ruleset, so it can
+#     push unsigned commits directly to main even when required_signatures is on.
+# =============================================================================
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      # trunk-ignore(checkov/CKV_GHA_7): inputs are intentional — bump is a constrained choice, notes is an optional text override
+      bump:
+        description: Version bump type
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - rc-patch
+          - rc-minor
+          - rc-major
+      notes:
+        description: Release notes override (leave blank to auto-generate via Copilot)
+        required: false
+        type: string
+
+permissions: {}
+
+jobs:
+  release:
+    name: 🚀 Create release (${{ inputs.bump }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # GITHUB_TOKEN only needs read; axnic-bot handles the push
+
+    steps:
+      - name: 🔑 Generate CI app token
+        id: app-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.CI_APP_ID }}
+          private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
+
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: 🔧 Install tools via mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: true
+
+      - name: 💾 Cache pnpm store
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.local/share/pnpm/store/v3
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ── Compute next version ───────────────────────────────────────────────
+      - name: 🔖 Compute next version and changelog range
+        id: version
+        run: |
+          BUMP="${{ inputs.bump }}"
+
+          # All semver-style tags, newest first
+          ALL_TAGS=$(git tag -l 'v[0-9]*' --sort=-version:refname)
+
+          # Last stable tag (no -rc. suffix); last tag of any kind
+          LAST_STABLE=$(printf '%s\n' "$ALL_TAGS" | grep -v -- '-rc\.' | head -1)
+          LAST_TAG=$(printf '%s\n' "$ALL_TAGS" | head -1)
+
+          [[ -z "$LAST_STABLE" ]] && LAST_STABLE="v0.0.0"
+          [[ -z "$LAST_TAG" ]]    && LAST_TAG="v0.0.0"
+
+          VER="${LAST_STABLE#v}"
+          MAJOR="${VER%%.*}"; REST="${VER#*.}"; MINOR="${REST%%.*}"; PATCH="${REST#*.}"
+
+          # Returns the next RC version for a given target (e.g. "1.3.0").
+          # Increments the existing RC counter if an RC for that target exists,
+          # otherwise starts at rc.1.
+          compute_rc() {
+            local target="$1"
+            local existing
+            existing=$(printf '%s\n' "$ALL_TAGS" | grep "^v${target}-rc\." | head -1)
+            if [[ -n "$existing" ]]; then
+              local n; n=$(printf '%s' "$existing" | grep -oE '[0-9]+$')
+              printf '%s-rc.%d' "$target" "$((n + 1))"
+            else
+              printf '%s-rc.1' "$target"
+            fi
+          }
+
+          case "$BUMP" in
+            patch)    NEW_VER="${MAJOR}.${MINOR}.$((PATCH + 1))"                ; PREV_TAG="$LAST_STABLE" ;;
+            minor)    NEW_VER="${MAJOR}.$((MINOR + 1)).0"                       ; PREV_TAG="$LAST_STABLE" ;;
+            major)    NEW_VER="$((MAJOR + 1)).0.0"                              ; PREV_TAG="$LAST_STABLE" ;;
+            rc-patch) NEW_VER=$(compute_rc "${MAJOR}.${MINOR}.$((PATCH + 1))") ; PREV_TAG="$LAST_TAG" ;;
+            rc-minor) NEW_VER=$(compute_rc "${MAJOR}.$((MINOR + 1)).0")         ; PREV_TAG="$LAST_TAG" ;;
+            rc-major) NEW_VER=$(compute_rc "$((MAJOR + 1)).0.0")                ; PREV_TAG="$LAST_TAG" ;;
+          esac
+
+          { echo "version=${NEW_VER}"; echo "prev_tag=${PREV_TAG}"; } >> "$GITHUB_OUTPUT"
+          echo "::notice::New version: v${NEW_VER}"
+          echo "::notice::Changelog from: ${PREV_TAG}"
+
+      # ── Collect commit log ─────────────────────────────────────────────────
+      # Captured before the version-bump commit so it only contains meaningful
+      # changes. Fields are separated by ASCII unit-separator (0x1F) and
+      # records by record-separator (0x1E) to survive arbitrary commit text.
+      # The PR-resolve step below enriches this data with PR numbers and logins.
+      - name: 📋 Collect structured commit log for release notes
+        run: |
+          PREV="${{ steps.version.outputs.prev_tag }}"
+          RANGE="${PREV}..HEAD"
+          [[ "$PREV" == "v0.0.0" ]] && RANGE="HEAD"
+
+          git log --first-parent \
+            --format="%H%x1f%s%x1f%b%x1f%an%x1f%ae%x1e" \
+            "$RANGE" > git-commits.txt
+
+          echo "::notice::Collected $(git log --first-parent --oneline "$RANGE" | wc -l | tr -d ' ') commit(s) (${RANGE})"
+
+      # ── Resolve PR metadata ────────────────────────────────────────────────
+      # Writes pr-data.json: { "<sha>": { number, url, login } | null }
+      - name: 🔗 Resolve PR numbers and authors
+        id: resolve-prs
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require('fs');
+            const raw = fs.readFileSync('git-commits.txt', 'utf8');
+            const shas = raw
+              .split('\x1e')
+              .filter(r => r.trim())
+              .map(r => r.split('\x1f')[0].trim())
+              .filter(sha => sha.length === 40);
+
+            const results = {};
+            await Promise.all(shas.map(async sha => {
+              try {
+                const { data } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  owner: context.repo.owner,
+                  repo:  context.repo.repo,
+                  commit_sha: sha,
+                });
+                const merged = data.find(p => p.merged_at);
+                results[sha] = merged
+                  ? { number: merged.number, url: merged.html_url, login: merged.user?.login ?? null }
+                  : null;
+              } catch {
+                results[sha] = null;
+              }
+            }));
+
+            fs.writeFileSync('pr-data.json', JSON.stringify(results));
+            core.info(`Resolved PR data for ${shas.length} commit(s).`);
+
+      # ── Bump version ───────────────────────────────────────────────────────
+      # --no-git-tag-version: tag is created manually after tests pass.
+      - name: 🔖 Bump version in package.json
+        run: |
+          pnpm pkg set version=${{ steps.version.outputs.version }}
+
+      # ── Commit, tag, push ──────────────────────────────────────────────────
+      - name: 🔧 Configure git identity
+        run: |
+          git config user.name  "axnic[bot]"
+          git config user.email "axnic[bot]@users.noreply.github.com"
+
+      - name: 📝 Commit version bump
+        run: |
+          git add package.json
+          git commit -m "chore(tooling): Bump version to v${{ steps.version.outputs.version }}"
+
+      - name: 🏷️ Create and push tag
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      # ── Generate release notes via Copilot ────────────────────────────────
+      # Stage 0 — if the user provided manual notes, skip all generation.
+      # Stage 1 — deterministic draft (always runs when no override; also the fallback).
+      # Stage 2 — Copilot CLI polishes the draft (adds LLM summary paragraph).
+      # Stage 3 — if the CLI fails for any reason, the deterministic draft is
+      #           used as-is.
+      - name: 📋 Use manual release notes override (if provided)
+        if: inputs.notes != ''
+        run: |
+          cat > release-notes.md << 'NOTES_EOF'
+          ${{ inputs.notes }}
+          NOTES_EOF
+
+      - name: 📝 Generate deterministic release notes draft
+        if: inputs.notes == ''
+        run: |
+          node scripts/generate-release-notes.mjs \
+            --version "${{ steps.version.outputs.version }}" \
+            --commits-file git-commits.txt \
+            --prs-file pr-data.json \
+            --output release-notes-deterministic.md
+
+      - name: 📦 Install Copilot CLI
+        if: inputs.notes == ''
+        run: npm install -g @github/copilot@1.0.26
+
+      - name: 🧠 Enhance release notes via Copilot CLI
+        if: inputs.notes == ''
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.GH_COPILOT_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Strip YAML frontmatter from the SKILL file (lines between "---" delimiters)
+          SKILL_CONTENT=$(awk '/^---/{found++; next} found>=2' .agents/skills/release-notes/SKILL.md)
+
+          # Build commit context text from the raw git log + PR data for the prompt
+          COMMIT_CONTEXT=$(node -e "
+            const fs = require('fs');
+            const raw = fs.readFileSync('git-commits.txt', 'utf8');
+            const prs = JSON.parse(fs.readFileSync('pr-data.json', 'utf8') || '{}');
+            const commits = raw.split('\x1e').filter(r => r.trim()).map(r => {
+              const [sha='', subject='', body='', authorName=''] = r.split('\x1f');
+              return { sha: sha.trim(), subject: subject.trim(), body: body.trim(), authorName: authorName.trim() };
+            }).filter(c => c.sha.length === 40);
+            const lines = commits.map(c => {
+              const pr = prs[c.sha];
+              const authorDisplay = pr?.login ? c.authorName + ' (@' + pr.login + ')' : c.authorName;
+              return [
+                'sha: ' + c.sha.slice(0, 7),
+                'subject: ' + c.subject,
+                c.body ? 'body: ' + c.body : null,
+                'author: ' + authorDisplay,
+                pr ? 'pr: #' + pr.number + ' (' + pr.url + ')' : 'pr: (none)',
+                '---',
+              ].filter(Boolean).join('\n');
+            });
+            process.stdout.write(lines.join('\n'));
+          ")
+
+          DRAFT=$(cat release-notes-deterministic.md)
+
+          PROMPT="${SKILL_CONTENT}
+
+          ---
+
+          Generate release notes for version v${VERSION}.
+
+          ## Commit log
+
+          ${COMMIT_CONTEXT}
+
+          ## Deterministic draft to improve
+
+          The following draft was generated deterministically. It contains a placeholder comment
+          \`<!-- SUMMARY_PLACEHOLDER: ... -->\` that you must replace with a polished 2–4 sentence
+          summary. Keep everything else (change lines, contributors, footer) as-is unless you
+          want to consolidate closely related bullets.
+
+          ${DRAFT}
+
+          You MUST write the final improved release notes to the file release-notes.md using the write tool. Do not just output the content — you must call the write tool to create the file."
+
+          COPILOT_SUCCESS=false
+          for attempt in 1 2 3; do
+            if copilot -p "${PROMPT}" \
+                --model 'gpt-5-mini' \
+                --allow-tool='write' \
+                --allow-tool='shell(node:*)' \
+                --allow-tool='shell(git:*)' \
+                --allow-url='https://api.github.com/*' \
+                --allow-url='https://raw.githubusercontent.com/*' \
+                --allow-url='https://github.com/*' \
+                --no-ask-user; then
+              echo "::notice::Copilot succeeded on attempt ${attempt}."
+              COPILOT_SUCCESS=true
+              break
+            fi
+            echo "::warning::Copilot attempt ${attempt}/3 failed."
+            [[ $attempt -lt 3 ]] && sleep 5
+          done
+          if [[ "$COPILOT_SUCCESS" != "true" ]]; then
+            echo "::warning::Copilot CLI failed after 3 attempts — using deterministic draft as fallback."
+            cp release-notes-deterministic.md release-notes.md
+          fi
+
+          # Safety net: if copilot ran but did not write the output file, fall back.
+          if [[ ! -f release-notes.md ]]; then
+            echo "::warning::release-notes.md not found after Copilot run — using deterministic draft."
+            cp release-notes-deterministic.md release-notes.md
+          fi
+
+      # ── Create GitHub Release ──────────────────────────────────────────────
+      - name: 🚀 Create GitHub Release
+        run: |
+          VERSION="v${{ steps.version.outputs.version }}"
+          if [[ "$VERSION" == *"-rc."* ]]; then
+            gh release create "$VERSION" \
+              --title "$VERSION" \
+              --notes-file release-notes.md \
+              --prerelease \
+              --draft
+          else
+            gh release create "$VERSION" \
+              --title "$VERSION" \
+              --notes-file release-notes.md \
+              --draft
+          fi
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
