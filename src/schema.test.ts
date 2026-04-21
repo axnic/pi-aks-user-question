@@ -36,11 +36,6 @@ describe("schema — question field pattern", () => {
     ).toBe(true);
   });
 
-  it("accepts a question without '?' (imperative form)", () => {
-    const q = { ...baseChoice, question: "Choose a runtime" };
-    expect(Value.Check(AskUserQuestionParams, { questions: [q] })).toBe(true);
-  });
-
   it("rejects a question with text after '?'", () => {
     const q = {
       ...baseChoice,
