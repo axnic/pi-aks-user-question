@@ -212,7 +212,7 @@ export class TextInput extends BaseInput<"text"> {
 
   /** @inheritdoc */
   getFooterHints(): FooterHint[] {
-    return [{ keys: [Key.enter], action: "validate" }];
+    return [{ keys: [Key.enter], action: "next" }];
   }
 
   /** @inheritdoc */

@@ -336,7 +336,7 @@ export class NumberInput extends BaseInput<"number"> {
     const step = this._q.step ?? 1;
     return [
       { keys: [Key.up, Key.down], action: `±${step}` },
-      { keys: [Key.enter], action: "validate" },
+      { keys: [Key.enter], action: "next" },
     ];
   }
 

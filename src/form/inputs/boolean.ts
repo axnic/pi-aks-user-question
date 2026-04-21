@@ -133,7 +133,7 @@ export class BooleanInput extends BaseInput<"boolean"> {
   getFooterHints(): FooterHint[] {
     return [
       { keys: [Key.up, Key.down], action: "choose" },
-      { keys: [Key.enter], action: "confirm" },
+      { keys: [Key.enter], action: "next" },
     ];
   }
 

@@ -448,8 +448,7 @@ export class Form {
     return {
       onAdvance: () => {
         if (this.isMulti) {
-          // Multi-question: never auto-advance — the user navigates with Tab.
-          this._refresh();
+          this._tabs.advance();
         } else {
           this._collectAndFinish(false);
         }

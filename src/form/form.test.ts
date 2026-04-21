@@ -883,11 +883,10 @@ describe("Form — review screen scroll (fixed height, Bug fix)", () => {
     goToReview(formEmpty, 4);
     const heightEmpty = formEmpty.render(80).length;
 
-    // Answer all questions then check review height.
-    const { form: formAnswered, formQuestions } = setup(makeQuestions(4));
-    // BooleanInput: pressing Enter selects Yes and advances — just mark them answered directly.
-    formQuestions.forEach((fq) => fq.input.handleInput("\r")); // Enter on boolean = select Yes
-    goToReview(formAnswered, 4);
+    // Answer all questions by pressing Enter on each boolean (advances to next tab each time).
+    const { form: formAnswered } = setup(makeQuestions(4));
+    for (let i = 0; i < 4; i++) formAnswered.handleInput("\r"); // Enter → answered + advance
+    // After 4 presses (4 questions → review), form is now on the review tab.
     const heightAnswered = formAnswered.render(80).length;
 
     expect(heightAnswered).toBe(heightEmpty);
