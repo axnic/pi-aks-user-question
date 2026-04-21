@@ -37,7 +37,7 @@ import {
   truncateToWidth,
   visibleWidth,
 } from "@mariozechner/pi-tui";
-import { isBorderLine, MAX_VISIBLE_OPTIONS } from "../../helpers";
+import { isBorderLine } from "../../helpers";
 import type {
   ChoiceOption,
   ChoiceQuestion,
@@ -201,13 +201,14 @@ export class ChoiceInput extends BaseInput {
 
   /** @inheritdoc */
   renderWidget(ctx: RenderContext): string[] {
-    const { theme, editor, maxW } = ctx;
+    const { theme, editor, maxW, maxH } = ctx;
     const lines: string[] = [];
     const add = (s: string) => lines.push(truncateToWidth(s, maxW));
 
     const total = this._optionCount();
-    const scrollable = total > MAX_VISIBLE_OPTIONS;
-    const vp = this._getViewport();
+    const scrollable = total > maxH;
+    const visibleCount = scrollable ? maxH : total;
+    const vp = this._getViewport(visibleCount);
     const vpSize = vp.end - vp.start + 1;
     const options = this._q.options;
 
@@ -316,16 +317,16 @@ export class ChoiceInput extends BaseInput {
     return `${num}. ${box} ${theme.fg(otherColor, otherLabel)}`;
   }
 
-  /** Compute viewport centered on cursor. */
-  private _getViewport(): { start: number; end: number } {
+  /** Compute viewport of `visibleCount` rows centered on cursor. */
+  private _getViewport(visibleCount: number): { start: number; end: number } {
     const total = this._optionCount();
-    if (total <= MAX_VISIBLE_OPTIONS) return { start: 0, end: total - 1 };
-    const half = Math.floor(MAX_VISIBLE_OPTIONS / 2);
+    if (total <= visibleCount) return { start: 0, end: total - 1 };
+    const half = Math.floor(visibleCount / 2);
     const start = Math.max(
       0,
-      Math.min(this._cursorIdx - half, total - MAX_VISIBLE_OPTIONS),
+      Math.min(this._cursorIdx - half, total - visibleCount),
     );
-    return { start, end: start + MAX_VISIBLE_OPTIONS - 1 };
+    return { start, end: start + visibleCount - 1 };
   }
 
   /**

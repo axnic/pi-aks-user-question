@@ -38,6 +38,11 @@ export interface RenderContext {
   theme: Theme;
   editor: Editor;
   maxW: number;
+  /**
+   * Maximum number of visible option rows a scrollable widget may render.
+   * Provided by Form from terminal height; can grow as the terminal resizes.
+   */
+  maxH: number;
 }
 
 /** A keyboard hint entry for the footer. */

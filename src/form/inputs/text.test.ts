@@ -53,7 +53,7 @@ function noopCallbacks(): InputCallbacks {
 }
 
 function ctx(editor: import("@mariozechner/pi-tui").Editor): RenderContext {
-  return { theme: theme as any, editor, maxW: 80 };
+  return { theme: theme as any, editor, maxW: 80, maxH: 4 };
 }
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────

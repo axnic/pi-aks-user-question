@@ -49,6 +49,12 @@ import { Tabs } from "./tabs";
 const REVIEW_VALUE_PADDING = 8;
 
 /**
+ * Default max visible option rows for scrollable input widgets.
+ * Static for now; can later be derived from terminal / window height.
+ */
+const WIDGET_MAX_H = 4;
+
+/**
  * Maximum number of question rows shown at once in the review screen.
  * Keeping the review at a fixed height prevents the tab bar from shifting
  * as the user navigates between input tabs (which render fewer lines) and
@@ -318,6 +324,7 @@ export class Form {
       theme: this._theme,
       editor: this._editor,
       maxW,
+      maxH: WIDGET_MAX_H,
     };
     lines.push(...input.renderWidget(ctx));
 

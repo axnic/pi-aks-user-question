@@ -55,8 +55,9 @@ function noopCallbacks(): InputCallbacks {
 function ctx(
   editor?: import("@mariozechner/pi-tui").Editor,
   maxW = 80,
+  maxH = 4,
 ): RenderContext {
-  return { theme: theme as any, editor: editor ?? mockEditor(), maxW };
+  return { theme: theme as any, editor: editor ?? mockEditor(), maxW, maxH };
 }
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -310,6 +311,57 @@ describe("ChoiceInput — scrollbar", () => {
     const optionLines = lines.filter((l) => l.includes("."));
     expect(optionLines).toHaveLength(4);
     expect(lines[lines.length - 1]).toContain("▼");
+  });
+});
+
+// ── maxH vertical scaling ─────────────────────────────────────────────────────
+
+describe("ChoiceInput — maxH vertical scaling", () => {
+  const manyOptions = Array.from({ length: 8 }, (_, i) => ({
+    label: `Option ${i + 1}`,
+  }));
+  const manyQ = {
+    id: "many",
+    question: "Pick one",
+    header: "Many",
+    type: "choice" as const,
+    options: manyOptions,
+    allowOther: false,
+  };
+
+  it("maxH=4 (default): shows 4 visible rows when scrollable", () => {
+    const ed = mockEditor();
+    const input = new ChoiceInput(manyQ, ed, noopCallbacks());
+    const lines = input.renderWidget(ctx(ed, 80, 4));
+    const optionLines = lines.filter((l) => l.includes("."));
+    expect(optionLines).toHaveLength(4);
+  });
+
+  it("maxH=6: shows 6 visible rows when scrollable", () => {
+    const ed = mockEditor();
+    const input = new ChoiceInput(manyQ, ed, noopCallbacks());
+    const lines = input.renderWidget(ctx(ed, 80, 6));
+    const optionLines = lines.filter((l) => l.includes("."));
+    expect(optionLines).toHaveLength(6);
+  });
+
+  it("maxH=10: shows all 8 rows without arrows when every option fits", () => {
+    const ed = mockEditor();
+    const input = new ChoiceInput(manyQ, ed, noopCallbacks());
+    const lines = input.renderWidget(ctx(ed, 80, 10));
+    const optionLines = lines.filter((l) => l.includes("."));
+    expect(optionLines).toHaveLength(8);
+    expect(lines.every((l) => !l.includes("▼") && !l.includes("▲"))).toBe(true);
+  });
+
+  it("maxH=2: shows only 2 rows with scrollbar when list is much longer", () => {
+    const ed = mockEditor();
+    const input = new ChoiceInput(manyQ, ed, noopCallbacks());
+    const lines = input.renderWidget(ctx(ed, 80, 2));
+    const optionLines = lines.filter((l) => l.includes("."));
+    expect(optionLines).toHaveLength(2);
+    const hasScrollbar = lines.some((l) => l.includes("│") || l.includes("┃"));
+    expect(hasScrollbar).toBe(true);
   });
 });
 

@@ -46,7 +46,7 @@ function noopCallbacks(): InputCallbacks {
 }
 
 function ctx(): RenderContext {
-  return { theme: theme as any, editor: mockEditor(), maxW: 80 };
+  return { theme: theme as any, editor: mockEditor(), maxW: 80, maxH: 4 };
 }
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
