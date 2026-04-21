@@ -11,7 +11,7 @@ description: >
   threads that would require a significant refactor: asks the user whether to
   open a tracking issue instead of fixing inline.
 compatibility: Requires git and gh CLI authenticated to GitHub
-allowed-tools: Bash(git:*) Bash(gh:*) Bash(python3:*) Read Write Glob Grep
+allowed-tools: Bash(git:*) Bash(gh:*) Bash(node:*) Read Write Glob Grep
 ---
 
 # Address PR Review
@@ -22,29 +22,29 @@ commit by scope → reply → resolve.
 ## Step 1 — Identify the PR
 
 ```bash
-git branch --show-current
-gh pr list --head <branch> --json number,title,url
+read OWNER REPO PR_NUMBER PR_AUTHOR \
+  < <(gh pr view --json number,headRepository,author \
+      | node scripts/get-pr-coords.mjs)
 ```
 
-If no open PR exists on the current branch, tell the user and stop.
+If no open PR exists on the current branch, `gh pr view` will error — tell the
+user and stop.
 
 ## Step 2 — Fetch unresolved review threads
 
-Use the GraphQL query in `references/graphql-ops.md` to fetch all review
-threads. Keep only threads where **all** of the following are true:
+```bash
+gh api graphql \
+  -f query='query($owner:String!,$repo:String!,$pr:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$pr){author{login}reviewThreads(first:100){nodes{id isResolved isOutdated comments(first:1){nodes{databaseId body path line author{login}}}}}}}}' \
+  -f owner="$OWNER" -f repo="$REPO" -F pr="$PR_NUMBER" \
+  | node scripts/fetch-threads.mjs > /tmp/threads.json
 
-- `isResolved: false`
-- `isOutdated: false`
-- Author is not the PR author (skip self-comments)
+cat /tmp/threads.json   # review before proceeding
+```
 
-Extract for each thread:
+`scripts/fetch-threads.mjs` filters out resolved, outdated, and self-commented
+threads and writes a JSON array to `/tmp/threads.json`.
 
-- `node_id` — the `id` field, needed to resolve later
-- `databaseId` of the first comment — needed to reply via REST
-- Comment body, file path, line number, author login
-
-> For the full GraphQL query and inline Python parser, see
-> `references/graphql-ops.md`.
+> Full query with variables and output format in `references/graphql-ops.md`.
 
 ## Step 3 — Triage threads
 
@@ -129,13 +129,14 @@ Note the short SHA of each commit — you need it in Step 7.
 
 ## Step 7 — Reply to each thread
 
-Post a reply to every thread you acted on (fixed or escalated):
+Read thread metadata from `/tmp/threads.json`. Post a reply to every thread
+you acted on (fixed or escalated). Use the `db_id` field:
 
 **Fixed thread:**
 
 ```bash
 gh api -X POST \
-  /repos/{owner}/{repo}/pulls/{pr_number}/comments/{databaseId}/replies \
+  /repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments/$DB_ID/replies \
   -f body="Fixed in <sha>. <one sentence: what changed and why.>"
 ```
 
@@ -143,7 +144,7 @@ gh api -X POST \
 
 ```bash
 gh api -X POST \
-  /repos/{owner}/{repo}/pulls/{pr_number}/comments/{databaseId}/replies \
+  /repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments/$DB_ID/replies \
   -f body="This requires a larger refactor. Opened #<issue_number> to track it."
 ```
 
@@ -151,7 +152,8 @@ Keep replies concise. Do not paraphrase the original comment.
 
 ## Step 8 — Resolve threads
 
-Resolve every thread you replied to in Step 7:
+Resolve every thread you replied to in Step 7, using the `node_id` field from
+`/tmp/threads.json`:
 
 ```bash
 gh api graphql -f query='mutation {
@@ -164,7 +166,7 @@ gh api graphql -f query='mutation {
 Verify `isResolved: true` before moving on. Never resolve a thread without
 first posting a reply.
 
-> Full query and mutation syntax in `references/graphql-ops.md`.
+> Full query syntax in `references/graphql-ops.md`.
 
 ## Step 9 — Report to the user
 
