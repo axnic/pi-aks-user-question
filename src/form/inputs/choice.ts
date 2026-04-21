@@ -149,8 +149,12 @@ export class ChoiceInput extends BaseInput {
       }
     }
 
-    // Enter: always advance to the next question.
+    // Enter: advance, but block for required questions with no selection.
     if (matchesKey(data, Key.enter)) {
+      if (this._q.required && !this.isAnswered()) {
+        this._callbacks.onRefresh(); // block silently — ✦ in tab bar signals required
+        return true;
+      }
       this._callbacks.onAdvance();
       return true;
     }
@@ -173,12 +177,17 @@ export class ChoiceInput extends BaseInput {
 
     if (matchesKey(data, Key.enter)) {
       const trimmed = this._editor.getText().trim();
-      this._otherText = trimmed;
       this._otherMode = false;
+      this._editor.setText("");
+      if (!trimmed) {
+        // Empty other text — exit Other mode without touching selection or advancing.
+        this._callbacks.onRefresh();
+        return true;
+      }
+      this._otherText = trimmed;
       if (!this._multi) {
         this._selected.clear();
       }
-      this._editor.setText("");
       this._callbacks.onAdvance();
       return true;
     }

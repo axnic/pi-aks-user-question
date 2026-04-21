@@ -156,13 +156,21 @@ export class TextInput extends BaseInput<"text"> {
 
   /**
    * Validate the Editor text and, if valid, commit it and advance.
-   * If invalid, store the error and refresh without advancing.
+   * If invalid or required-but-empty, store the error and refresh without advancing.
    */
   private _submit(): void {
     clearTimeout(this._debounceTimer);
     this._debounceTimer = undefined;
 
     const trimmed = this._editor.getText().split("\n")[0]!.trim();
+
+    // Required fields must have a value before advancing.
+    if (this._q.required && !trimmed) {
+      this._error = "This field is required";
+      this._callbacks.onRefresh();
+      return;
+    }
+
     const v = this._validation;
     if (v && trimmed) {
       const err = validate(trimmed, v);

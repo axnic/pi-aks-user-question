@@ -197,13 +197,18 @@ export class NumberInput extends BaseInput<"number"> {
   /**
    * Validates `_rawText` and sets `_error` if invalid.
    *
-   * @returns `true` if valid, `false` otherwise (and populates `_error`).
+   * @returns `true` if valid (or optional+empty), `false` otherwise (and populates `_error`).
    */
   private _submitValue(): boolean {
     const raw = this._rawText.trim();
     if (!raw) {
-      this._error = "Please enter a number";
-      return false;
+      if (this._q.required) {
+        this._error = "Please enter a number";
+        return false;
+      }
+      // Optional and empty → clear any previous error and allow advance.
+      this._error = undefined;
+      return true;
     }
     const n = Number(raw);
     if (!Number.isFinite(n)) {

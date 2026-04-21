@@ -234,9 +234,17 @@ describe("NumberInput — state machine", () => {
     expect(input.getTypedValue()).toBe(2);
   });
 
-  it("validation error set on Enter with non-finite input", () => {
+  it("no validation error on Enter with empty buffer when optional", () => {
     const ed = mockEditor();
-    const input = new NumberInput(q, ed, noopCallbacks());
+    const input = new NumberInput(q, ed, noopCallbacks()); // q has no required flag
+    input.handleInput("\r"); // empty buffer
+    expect(input.getValidationError()).toBeUndefined();
+  });
+
+  it("validation error set on Enter with empty buffer when required", () => {
+    const ed = mockEditor();
+    const requiredQ = { ...q, required: true };
+    const input = new NumberInput(requiredQ, ed, noopCallbacks());
     input.handleInput("\r"); // empty buffer
     expect(input.getValidationError()).toBeDefined();
   });
