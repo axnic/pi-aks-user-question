@@ -132,7 +132,7 @@ export class TextInput extends BaseInput<"text"> {
 
     // All other keys → forward to the editor.
     // Block \n (Shift+Enter) — this is a single-line input.
-    if (data === "\n") return true;
+    if (matchesKey(data, Key.shift(Key.enter))) return true;
     this._editor.handleInput(data);
     this._isDirty = true; // uncommitted change — tab indicator goes pending
 
