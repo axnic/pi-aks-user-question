@@ -11,7 +11,6 @@
  *  Review your answers:
  *                                     ← blank
  *  ✘ 2 required questions unanswered  ← warning or blank placeholder
- *                                     ← blank
  * │ Header 1          → Answer 1      ← scrollbar char + space + content
  * ┃ Header 2          → Answer 2
  * │ Header 3          → Answer 3
@@ -30,8 +29,8 @@ import type { Theme } from "./inputs/types";
 import type { FormQuestion } from "./question";
 import { scrollbarChar } from "./scrollbar";
 
-/** Lines consumed by the header block (blank + heading + blank + warning + blank). */
-const REVIEW_OVERHEAD_TOP = 5;
+/** Lines consumed by the header block (blank + heading + blank + warning). */
+const REVIEW_OVERHEAD_TOP = 4;
 
 /** Lines consumed by the submit area (blank + hint line). */
 const REVIEW_OVERHEAD_BOTTOM = 2;
@@ -62,6 +61,13 @@ export class ReviewScreen {
    */
   private _maxH: number;
 
+  /**
+   * @param _questions   - Normalised question list from the form.
+   * @param _theme       - Theme instance for colour and style rendering.
+   * @param defaultMaxH  - Height budget to use before the first {@link render}
+   *                       call; should match the `REVIEW_MAX_H` constant in
+   *                       {@link Form}. Defaults to 15 (same as `REVIEW_MAX_H`).
+   */
   constructor(
     private readonly _questions: FormQuestion[],
     private readonly _theme: Theme,
@@ -118,7 +124,8 @@ export class ReviewScreen {
    * Renders the full review screen into a line buffer.
    *
    * @param maxW - Terminal width in columns.
-   * @param maxH - Total lines budget for the review content (question rows = maxH - {@link REVIEW_OVERHEAD}).
+   * @param maxH - Total lines budget for the review content
+   *               (visible question rows = `maxH - REVIEW_OVERHEAD` = `maxH - 6`).
    * @returns Array of rendered lines.
    */
   render(maxW: number, maxH: number): string[] {
@@ -159,7 +166,6 @@ export class ReviewScreen {
     } else {
       lines.push(""); // stable-height placeholder when all questions are answered
     }
-    lines.push("");
 
     // ── Question rows ─────────────────────────────────────────────────────────
     const maxHeaderW =
@@ -191,7 +197,7 @@ export class ReviewScreen {
       const headerStyled =
         fq.required && !answered
           ? theme.fg("warning", paddedHeader)
-          : theme.bold(theme.fg("text", paddedHeader));
+          : theme.fg("accent", paddedHeader);
 
       const prefix = scrollable
         ? `${scrollbarChar(i, this._offset, visibleCount, total, theme)} `

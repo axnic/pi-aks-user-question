@@ -900,9 +900,9 @@ describe("Form — review screen scroll (fixed height, Bug fix)", () => {
   it("↓ does nothing when already at the bottom", () => {
     const { form } = setup(makeQuestions(10));
     goToReview(form, 10);
-    // Scroll to the very bottom (10 - 8 = 2 scrolls needed).
+    // Scroll to the very bottom (10 - 9 = 1 scroll needed; REVIEW_MAX_H=15 → visibleCount=9).
     form.handleInput(K.down);
-    form.handleInput(K.down);
+    form.handleInput(K.down); // no-op at bottom
     form.handleInput(K.down); // no-op at bottom
     const lines = form.render(80);
     expect(lines.join("\n")).not.toContain("more below");
