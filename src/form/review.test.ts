@@ -62,9 +62,9 @@ describe("ReviewScreen — render (no scroll)", () => {
     expect(output).toContain("What is 3?");
   });
 
-  it("shows answers with → separator", () => {
+  it("shows answers with · connector", () => {
     const screen = new ReviewScreen(makeQuestions(3, true), theme as any);
-    const rows = screen.render(80, 15).filter((l) => l.includes("→"));
+    const rows = screen.render(80, 15).filter((l) => l.includes("Answer"));
     expect(rows.length).toBe(3);
     expect(rows[0]).toContain("Answer 1");
   });
@@ -138,7 +138,7 @@ describe("ReviewScreen — render (with scroll)", () => {
   it("shows exactly visibleCount question rows when scrollable", () => {
     const screen = new ReviewScreen(makeQuestions(10, true), theme as any);
     const output = screen.render(80, 10); // visibleCount = 4
-    const rows = output.filter((l) => l.includes("→"));
+    const rows = output.filter((l) => l.includes("Answer"));
     expect(rows).toHaveLength(4);
   });
 
@@ -164,7 +164,7 @@ describe("ReviewScreen — render (with scroll)", () => {
     // Scroll to the very bottom.
     for (let i = 0; i < 6; i++) screen.handleInput("\x1b[B");
     const output = screen.render(80, 10);
-    const rows = output.filter((l) => l.includes("→"));
+    const rows = output.filter((l) => l.includes("Answer"));
     // The last visible row should have the thumb.
     const lastRow = rows[rows.length - 1]!;
     expect(lastRow).toContain("┃");
@@ -243,7 +243,7 @@ describe("ReviewScreen — reset", () => {
     for (let i = 0; i < 6; i++) screen.handleInput("\x1b[B"); // scroll to bottom
     screen.reset();
     const output = screen.render(80, 10);
-    const rows = output.filter((l) => l.includes("→"));
+    const rows = output.filter((l) => l.includes("Answer"));
     expect(rows[0]).toContain("Answer 1");
   });
 });
@@ -255,7 +255,7 @@ describe("ReviewScreen — different maxH values", () => {
     // visibleCount = max(1, 8-6) = 2
     const screen = new ReviewScreen(makeQuestions(5, true), theme as any);
     const output = screen.render(80, 8);
-    const rows = output.filter((l) => l.includes("→"));
+    const rows = output.filter((l) => l.includes("Answer"));
     expect(rows.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -263,7 +263,7 @@ describe("ReviewScreen — different maxH values", () => {
     // visibleCount = 15 - 6 = 9
     const screen = new ReviewScreen(makeQuestions(10, true), theme as any);
     const output = screen.render(80, 15);
-    const rows = output.filter((l) => l.includes("→"));
+    const rows = output.filter((l) => l.includes("Answer"));
     expect(rows).toHaveLength(9);
   });
 
@@ -271,7 +271,7 @@ describe("ReviewScreen — different maxH values", () => {
     // visibleCount = 20 - 6 = 14 > 5 → no scroll
     const screen = new ReviewScreen(makeQuestions(5, true), theme as any);
     const output = screen.render(80, 20);
-    const rows = output.filter((l) => l.includes("→"));
+    const rows = output.filter((l) => l.includes("Answer"));
     expect(rows).toHaveLength(5);
     const hasScrollbar = output.some((l) => l.includes("│") || l.includes("┃"));
     expect(hasScrollbar).toBe(false);
@@ -281,7 +281,7 @@ describe("ReviewScreen — different maxH values", () => {
     // visibleCount = 10 - 6 = 4
     const screen = new ReviewScreen(makeQuestions(10, true), theme as any);
     const output = screen.render(80, 10);
-    const rows = output.filter((l) => l.includes("→"));
+    const rows = output.filter((l) => l.includes("Answer"));
     expect(rows).toHaveLength(4);
   });
 });

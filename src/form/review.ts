@@ -11,9 +11,9 @@
  *  Review your answers:
  *                                     ← blank
  *  ✘ 2 required questions unanswered  ← warning or blank placeholder
- * │ Header 1          → Answer 1      ← scrollbar char + space + content
- * ┃ Header 2          → Answer 2
- * │ Header 3          → Answer 3
+ * │ Header 1 ? ·········· Answer 1    ← scrollbar char + space + content
+ * ┃ Header 2 ?          · Answer 2
+ * │ Header 3 ? ········· Answer 3
  *                                     ← blank padding (stable height)
  *                                     ← blank before hint
  *  Enter submit · Tab/Shift+Tab edit · Esc cancel · ↑/↓ scroll
@@ -38,7 +38,7 @@ const REVIEW_OVERHEAD_BOTTOM = 2;
 /** Total fixed-overhead lines surrounding the question list. */
 const REVIEW_OVERHEAD = REVIEW_OVERHEAD_TOP + REVIEW_OVERHEAD_BOTTOM;
 
-/** Extra columns consumed by the " → " separator and surrounding margins. */
+/** Extra columns consumed by the " · " connector and surrounding margins. */
 const REVIEW_VALUE_PADDING = 8;
 
 /** Returned by {@link ReviewScreen.handleInput} to describe what happened. */
@@ -188,22 +188,24 @@ export class ReviewScreen {
     for (let i = 0; i < slice.length; i++) {
       const fq = slice[i]!;
       const answered = fq.input.isAnswered();
-      const paddedHeader = fq.question.padEnd(maxHeaderW);
+
+      const dotsCount = Math.max(1, maxHeaderW - visibleWidth(fq.question) + 1);
+      const dots = theme.fg("muted", "·".repeat(dotsCount));
 
       const valueText = answered
         ? truncateToWidth(fq.input.getReviewValue(), valueMaxW)
         : theme.fg("dim", "(not answered)");
 
-      const headerStyled =
+      const questionStyled =
         fq.required && !answered
-          ? theme.fg("warning", paddedHeader)
-          : theme.fg("accent", paddedHeader);
+          ? theme.fg("warning", fq.question)
+          : theme.fg("accent", fq.question);
 
       const prefix = scrollable
         ? `${scrollbarChar(i, this._offset, visibleCount, total, theme)} `
         : " ";
 
-      add(`${prefix}${headerStyled} ${theme.fg("dim", "→")} ${valueText}`);
+      add(`${prefix}${questionStyled} ${dots} ${valueText}`);
     }
 
     // Pad to visibleCount when scrollable so the frame height stays constant
