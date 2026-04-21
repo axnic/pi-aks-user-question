@@ -1,9 +1,9 @@
 /**
- * generate-schema.mjs — Exports the TypeBox tool-parameter schema to docs/schema.json.
+ * generate-schema.ts — Exports the TypeBox tool-parameter schema to docs/schema.json.
  *
  * Usage:
- *   node --import tsx scripts/generate-schema.mjs          # write to docs/schema.json
- *   node --import tsx scripts/generate-schema.mjs --stdout  # print to stdout
+ *   npx tsx scripts/generate-schema.ts          # write to docs/schema.json
+ *   npx tsx scripts/generate-schema.ts --stdout  # print to stdout
  *
  * The generated file is the canonical JSON Schema for the ask_user_question tool
  * parameters. It is derived from the TypeBox definitions in src/schema.ts so it
