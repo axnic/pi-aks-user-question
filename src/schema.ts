@@ -39,7 +39,9 @@ const baseFields = {
     examples: ["language", "port", "enable-tls"],
   }),
   question: Type.String({
-    description: "Full question text — should end with a question mark",
+    description:
+      "Full question text — must end with '?' and contain nothing after it. Keep it short (one sentence, ≤10 words); never add notes, examples, or parenthetical remarks after the '?'.",
+    pattern: "^[^?]*\\??$",
     examples: ["Which programming language do you prefer?"],
   }),
   header: Type.String({
@@ -110,7 +112,9 @@ export const TextQuestionSchema = Type.Object(
     ...baseFields,
     type: Type.Literal("text"),
     placeholder: Type.String({
-      description: "Hint text shown in the empty input field",
+      description:
+        "Single-line hint text shown in the empty input field (no newlines — the input is a single-line field)",
+      pattern: "^[^\\n\\r]*$",
       examples: ["e.g. https://example.com", "e.g. 8080"],
     }),
     validation: Type.Optional(StringValidationSchema),
@@ -172,7 +176,7 @@ export const ChoiceQuestionSchema = Type.Object(
   },
   {
     description:
-      "Single-select numbered list — Enter picks; auto-submits in single-question forms, stays focused in multi-question forms",
+      "Single-select numbered list — Space picks; Enter advances. In single-question forms, Enter submits immediately.",
     examples: [
       {
         type: "choice",
@@ -207,7 +211,7 @@ export const MultiChoiceQuestionSchema = Type.Object(
   },
   {
     description:
-      "Multi-select checkboxes — Enter/Space toggles; Tab submits (single-question) or advances (multi-question)",
+      "Multi-select checkboxes — Space toggles; Enter advances to next question",
     examples: [
       {
         type: "multichoice",
