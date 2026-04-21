@@ -61,37 +61,57 @@ The extension is a single-layer pi extension that exposes one tool: **`ask_user_
 Registers the `ask_user_question` tool with pi. When invoked, it:
 
 1. Validates the incoming parameters against the JSON Schema (`src/schema.ts`).
-2. Normalizes each question through `normalizeQuestion()` (`src/helpers.ts`).
-3. Opens a TUI form via `src/form/` and waits for the user to submit or cancel.
-4. Returns a `FormResult` with structured answers to the LLM.
+2. Opens a TUI form via `src/form/` and waits for the user to submit or cancel.
+3. Returns a `FormResult` with structured answers to the LLM.
 
 ### Form (`src/form/`)
 
-- **`src/form/index.ts`** — orchestrates the form lifecycle (open, render loop, collect answers).
-- **`src/form/state.ts`** — pure state machine; all transitions are side-effect-free functions.
-- **`src/form/handlers.ts`** — maps raw key events to state transitions.
-- **`src/form/renderers.ts`** — renders state to TUI output strings (one per line).
+- **`src/form/form.ts`** — `Form` class: orchestrates the form lifecycle — tab navigation, input activation/deactivation, review screen with scroll, exit confirmation, and answer collection.
+- **`src/form/tabs.ts`** — `Tabs` component: renders the horizontal tab bar with answered/required indicators and auto-scrolling viewport.
+- **`src/form/question.ts`** — `FormQuestion` interface linking a normalized `Question` to its interactive `Input` widget plus display metadata.
+- **`src/form/scrollbar.ts`** — `Scrollbar` component: renders a vertical scrollbar indicator for long option lists and the review screen.
+- **`src/form/index.ts`** — public entry point: creates the `Form` and wires it into the pi extension lifecycle.
+
+### Inputs (`src/form/inputs/`)
+
+Each input type is a self-contained module (class + colocated test file):
+
+- **`types.ts`** — `Input` / `BaseInput` / `InputCallbacks` abstractions shared by all input types.
+- **`text.ts`** — `TextInput`: single-line text with an `Editor`, debounced validation, and placeholder.
+- **`number.ts`** — `NumberInput`: numeric input using a shared `Editor` with insert-then-revert validation.
+- **`boolean.ts`** — `BooleanInput`: yes/no toggle with customisable labels and colours.
+- **`choice.ts`** — `ChoiceInput`: single-select and multi-select option list with an optional "Other…" free-text row and scrollbar.
 
 ### Shared modules (`src/`)
 
 - **`src/schema.ts`** — TypeBox JSON Schema for the `ask_user_question` tool parameters.
 - **`src/types.ts`** — shared TypeScript interfaces (`Option`, `Validation`, `Question`, `Answer`, `FormResult`).
-- **`src/helpers.ts`** — stateless utility functions (`normalizeQuestion`, `errorResult`, `stripAnsi`, `isBorderLine`).
-- **`src/validation.ts`** — text input validation (`validateTextInput`), covers url, email, ip, number, integer, regex.
+- **`src/helpers.ts`** — stateless utility functions (`errorResult`, `stripAnsi`, `isBorderLine`).
+- **`src/validation.ts`** — text input validation (`validate`), covers url, email, ip, number, integer, regex.
 
-### Test scenarios (`tests/`)
+### Tests
 
-Markdown files describing form scenarios. Each file encodes a fixture: a set of questions and the expected interaction sequence. Colocated with the test runner that parses them.
+- **`src/form/inputs/*.test.ts`** — unit tests organised by input type (text, number, boolean, choice).
+- **`src/form/form.test.ts`** — integration tests for the Form (tabs, review, scroll, exit confirmation).
+- **`src/form/tabs.test.ts`** — unit tests for the Tabs component.
+- **`tests/*.md`** — scenario descriptions used as integration test fixtures.
 
 ## Key Conventions
 
-### State machine is pure
+### Input lifecycle
 
-All form state transitions in `src/form/state.ts` and `src/form/handlers.ts` are pure functions with no side effects. This makes them cheap to unit-test in isolation without a running pi instance.
+Each input follows an activate/deactivate lifecycle:
 
-### `Question` normalization
+- `activate()` — acquires the shared `Editor`, sets up submit handler.
+- `deactivate()` — validates, saves the current value, releases the Editor.
+- `handleInput(data)` — processes keystrokes while active.
+- `renderWidget(maxW)` — produces display lines for the current state.
 
-Raw questions from the LLM may omit optional fields. Always pass questions through `normalizeQuestion()` (`src/helpers.ts`) before using them. After normalization:
+State transitions within inputs are pure where possible; side effects are limited to Editor interactions and callback invocations.
+
+### Question types
+
+Raw questions from the LLM are normalised at construction time in `src/form/index.ts`. After normalisation:
 
 - `type === "text"` → `multiSelect: false`, `allowOther: false`.
 - `type === "choice"` → `allowOther` defaults to `true`.
