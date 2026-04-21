@@ -271,13 +271,18 @@ export class NumberInput extends BaseInput<"number"> {
     if (this._q.validation?.max !== undefined)
       next = Math.min(this._q.validation.max, next);
 
-    this._rawText = Number.isInteger(this._q.step ?? 1)
-      ? String(Math.round(next))
-      : (() => {
-          const decimals = (String(this._q.step ?? 1).split(".")[1] || "")
-            .length;
-          return String(Number(next.toFixed(decimals)));
-        })();
+    if (this._q.validation?.format === "integer") {
+      this._rawText = String(Math.round(next));
+    } else {
+      const stepDecimals = (String(this._q.step ?? 1).split(".")[1] || "")
+        .length;
+      const currentDecimals = empty
+        ? 0
+        : (this._rawText.trim().split(".")[1] || "").length;
+      const decimals = Math.max(stepDecimals, currentDecimals);
+      this._rawText =
+        decimals > 0 ? String(Number(next.toFixed(decimals))) : String(next);
+    }
     this._error = undefined;
   }
 

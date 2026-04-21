@@ -175,11 +175,13 @@ export function validateFormParams(rawParams: unknown): string | null {
     const qObj = q as Record<string, unknown>;
 
     if (
+      typeof qObj.id !== "string" ||
+      qObj.id.trim().length === 0 ||
       typeof qObj.type !== "string" ||
       typeof qObj.question !== "string" ||
       typeof qObj.header !== "string"
     ) {
-      return "ask_user_question: each question needs string 'type', 'question', and 'header' fields";
+      return "ask_user_question: each question needs a non-empty string 'id' and string 'type', 'question', and 'header' fields";
     }
 
     if (!ALLOWED_QUESTION_TYPES.has(qObj.type)) {
@@ -193,8 +195,54 @@ export function validateFormParams(rawParams: unknown): string | null {
       return `ask_user_question: question "${qObj.header}" needs at least 2 options`;
     }
 
+    if (qObj.type === "choice" || qObj.type === "multichoice") {
+      for (const opt of (qObj.options as unknown[]) ?? []) {
+        if (
+          !opt ||
+          typeof opt !== "object" ||
+          typeof (opt as Record<string, unknown>).label !== "string"
+        ) {
+          return `ask_user_question: question "${qObj.header}" options must each have a string 'label' field`;
+        }
+      }
+    }
+
     if (qObj.type === "text" && typeof qObj.placeholder !== "string") {
       return `ask_user_question: question "${qObj.header}" (type '${qObj.type}') is missing a 'placeholder'`;
+    }
+
+    if (qObj.type === "number") {
+      if (
+        qObj.step !== undefined &&
+        (typeof qObj.step !== "number" || !Number.isFinite(qObj.step))
+      ) {
+        return `ask_user_question: question "${qObj.header}" 'step' must be a finite number`;
+      }
+      if (
+        qObj.placeholder !== undefined &&
+        (typeof qObj.placeholder !== "number" ||
+          !Number.isFinite(qObj.placeholder))
+      ) {
+        return `ask_user_question: question "${qObj.header}" 'placeholder' must be a finite number`;
+      }
+      if (
+        qObj.validation !== undefined &&
+        typeof qObj.validation === "object"
+      ) {
+        const v = qObj.validation as Record<string, unknown>;
+        if (
+          v.min !== undefined &&
+          (typeof v.min !== "number" || !Number.isFinite(v.min))
+        ) {
+          return `ask_user_question: question "${qObj.header}" validation.min must be a finite number`;
+        }
+        if (
+          v.max !== undefined &&
+          (typeof v.max !== "number" || !Number.isFinite(v.max))
+        ) {
+          return `ask_user_question: question "${qObj.header}" validation.max must be a finite number`;
+        }
+      }
     }
 
     if (qObj.type === "multichoice") {
