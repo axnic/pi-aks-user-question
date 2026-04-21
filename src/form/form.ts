@@ -87,7 +87,10 @@ export class Form {
 
   /** The {@link FormQuestion} whose input is currently focused. */
   get activeQuestion(): FormQuestion {
-    return this._questions[this._tabs.activeIndex]!;
+    const question = this._questions[this._tabs.activeIndex];
+    if (!question)
+      throw new Error(`No question at index ${this._tabs.activeIndex}`);
+    return question;
   }
 
   /**
@@ -113,12 +116,14 @@ export class Form {
       this.isMulti,
       (oldIdx, newIdx, isReview) => {
         // Deactivate old input.
-        if (oldIdx < questions.length) {
-          this._deactivateInput(questions[oldIdx]!.input);
+        const oldQ = questions[oldIdx];
+        if (oldQ) {
+          this._deactivateInput(oldQ.input);
         }
         // Activate new input.
-        if (!isReview && newIdx < questions.length) {
-          this._activateInput(questions[newIdx]!.input);
+        const newQ = questions[newIdx];
+        if (!isReview && newQ) {
+          this._activateInput(newQ.input);
         }
         // Reset review scroll whenever the tab changes.
         this._reviewScreen.reset();

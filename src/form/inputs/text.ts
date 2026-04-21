@@ -32,7 +32,12 @@ import { Key, matchesKey, truncateToWidth } from "@mariozechner/pi-tui";
 import { isBorderLine } from "../../helpers";
 import type { TextQuestion } from "../../types";
 import { type StringValidationConfig, validate } from "../../validation";
-import { BaseInput, type FooterHint, type InputCallbacks, type RenderContext } from "./types";
+import {
+  BaseInput,
+  type FooterHint,
+  type InputCallbacks,
+  type RenderContext,
+} from "./types";
 
 /** ms of inactivity before live validation feedback appears. */
 export const VALIDATION_DEBOUNCE_MS = 250;

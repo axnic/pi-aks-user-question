@@ -86,7 +86,11 @@ describe("TextInput — state machine", () => {
 
   it("isAnswered() returns true when text is committed via activate/deactivate", () => {
     const ed = mockEditor();
-    const input = new TextInput({ ...q, validation: undefined }, ed, noopCallbacks());
+    const input = new TextInput(
+      { ...q, validation: undefined },
+      ed,
+      noopCallbacks(),
+    );
     input.activate();
     (ed as unknown as MockEditor).setText("My name");
     input.deactivate();
@@ -123,7 +127,11 @@ describe("TextInput — state machine", () => {
 
   it("getTypedValue() returns committed value", () => {
     const ed = mockEditor();
-    const input = new TextInput({ ...q, validation: undefined }, ed, noopCallbacks());
+    const input = new TextInput(
+      { ...q, validation: undefined },
+      ed,
+      noopCallbacks(),
+    );
     input.activate();
     (ed as unknown as MockEditor).setText("Alice");
     input.deactivate();
@@ -132,7 +140,11 @@ describe("TextInput — state machine", () => {
 
   it("getReviewValue() matches getTypedValue()", () => {
     const ed = mockEditor();
-    const input = new TextInput({ ...q, validation: undefined }, ed, noopCallbacks());
+    const input = new TextInput(
+      { ...q, validation: undefined },
+      ed,
+      noopCallbacks(),
+    );
     input.activate();
     (ed as unknown as MockEditor).setText("Alice");
     input.deactivate();
@@ -249,7 +261,11 @@ describe("TextInput — dispose", () => {
 describe("TextInput — deactivate() saves and clears dirty (Bug 1)", () => {
   it("typing then Tab: isAnswered() is true when no validation", () => {
     const ed = mockEditor();
-    const input = new TextInput({ ...q, validation: undefined }, ed, noopCallbacks());
+    const input = new TextInput(
+      { ...q, validation: undefined },
+      ed,
+      noopCallbacks(),
+    );
     input.activate();
     // Type "Alice" char-by-char through handleInput (sets _isDirty)
     for (const ch of "Alice") input.handleInput(ch);
@@ -337,7 +353,11 @@ describe("TextInput — single-line (Bug 2)", () => {
 
   it("deactivate() keeps only the first line when editor has multi-line text", () => {
     const ed = mockEditor();
-    const input = new TextInput({ ...q, validation: undefined }, ed, noopCallbacks());
+    const input = new TextInput(
+      { ...q, validation: undefined },
+      ed,
+      noopCallbacks(),
+    );
     input.activate();
     // Force multi-line text into the editor (simulates a terminal that allows newlines)
     (ed as unknown as MockEditor).setText("hello\nworld");

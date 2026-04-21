@@ -45,7 +45,9 @@ class MockEditor {
     if (data === "\x7f") {
       // backspace
       if (this._cursor > 0) {
-        this._text = this._text.slice(0, this._cursor - 1) + this._text.slice(this._cursor);
+        this._text =
+          this._text.slice(0, this._cursor - 1) +
+          this._text.slice(this._cursor);
         this._cursor--;
       }
     } else if (data === "\x1b[D") {
@@ -55,7 +57,10 @@ class MockEditor {
       // → arrow
       if (this._cursor < this._text.length) this._cursor++;
     } else if (data.length === 1 && data >= " ") {
-      this._text = this._text.slice(0, this._cursor) + data + this._text.slice(this._cursor);
+      this._text =
+        this._text.slice(0, this._cursor) +
+        data +
+        this._text.slice(this._cursor);
       this._cursor++;
     }
   }
@@ -77,7 +82,10 @@ function noopCallbacks(): InputCallbacks {
   };
 }
 
-function ctx(editor: import("@mariozechner/pi-tui").Editor, maxW = 80): RenderContext {
+function ctx(
+  editor: import("@mariozechner/pi-tui").Editor,
+  maxW = 80,
+): RenderContext {
   return { theme: theme as any, editor, maxW, maxH: 4 };
 }
 
