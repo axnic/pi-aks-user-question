@@ -355,7 +355,7 @@ describe("Form.render — multi-question", () => {
     form.invalidate();
     const full = form.render(80).join("\n");
     expect(full).toContain("Review your answers");
-    expect(full).toContain("Enter to submit");
+    expect(full).toContain("Enter submit");
   });
 
   it("shows validation error in rendered frame", () => {
@@ -833,24 +833,23 @@ describe("Form — review screen scroll (fixed height, Bug fix)", () => {
     expect(joined).not.toContain("more below");
   });
 
-  it("with >8 questions: ↓ scroll indicator appears initially", () => {
+  it("with >8 questions: scrollbar appears when questions exceed visible count", () => {
     const { form } = setup(makeQuestions(10));
     goToReview(form, 10);
     const lines = form.render(80);
-    const joined = lines.join("\n");
-    expect(joined).toContain("more below");
-    expect(joined).not.toContain("more above");
+    // New design: left-side scrollbar chars (│/┃) replace the old text indicators.
+    const hasScrollbar = lines.some((l) => l.includes("│") || l.includes("┃"));
+    expect(hasScrollbar).toBe(true);
   });
 
-  it("scrolling down shows ↑ indicator and hides first rows", () => {
+  it("scrolling down hides first rows and shows later rows", () => {
     const { form } = setup(makeQuestions(10));
     goToReview(form, 10);
     form.handleInput(K.down); // scroll down
     const lines = form.render(80);
     const joined = lines.join("\n");
-    expect(joined).toContain("more above");
-    expect(joined).not.toContain(" Q0 "); // first row scrolled out
-    expect(joined).toContain("Q1"); // second row now visible
+    expect(joined).not.toContain(" Q0 "); // first row scrolled out of view
+    expect(joined).toContain("Q1"); // second row now visible at top
   });
 
   it("with few questions: no padding — review is shorter than with many questions", () => {

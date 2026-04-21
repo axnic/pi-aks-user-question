@@ -32,7 +32,6 @@ import {
   Key,
   matchesKey,
   truncateToWidth,
-  visibleWidth,
   wrapTextWithAnsi,
 } from "@mariozechner/pi-tui";
 import type { Answer, FormResult, InputValue, Question } from "../types";
@@ -43,10 +42,8 @@ import type {
   Theme,
 } from "./inputs/types";
 import type { FormQuestion } from "./question";
+import { ReviewScreen } from "./review";
 import { Tabs } from "./tabs";
-
-/** Extra columns reserved for the `" → "` separator and margins in review rows. */
-const REVIEW_VALUE_PADDING = 8;
 
 /**
  * Default max visible option rows for scrollable input widgets.
@@ -55,12 +52,12 @@ const REVIEW_VALUE_PADDING = 8;
 const WIDGET_MAX_H = 4;
 
 /**
- * Maximum number of question rows shown at once in the review screen.
- * Keeping the review at a fixed height prevents the tab bar from shifting
- * as the user navigates between input tabs (which render fewer lines) and
- * the review tab (which could render arbitrarily many).
+ * Total lines passed to ReviewScreen.render() — sets the review frame height.
+ * Chosen so that visibleCount = REVIEW_MAX_H − REVIEW_OVERHEAD = 15 − 7 = 8,
+ * matching the previous hard-coded REVIEW_MAX_VISIBLE = 8 constant.
+ * Can later be derived from terminal height.
  */
-const REVIEW_MAX_VISIBLE = 8;
+const REVIEW_MAX_H = 15;
 
 /**
  * Orchestrates the interactive form: input lifecycle, tab navigation,
@@ -74,6 +71,7 @@ const REVIEW_MAX_VISIBLE = 8;
  */
 export class Form {
   private readonly _tabs: Tabs;
+  private readonly _reviewScreen: ReviewScreen;
   private readonly _questions: FormQuestion[];
   private _showExitConfirm = false;
   /** Which option is highlighted in the exit dialog: true = Y (quit), false = N (continue). */
@@ -81,8 +79,6 @@ export class Form {
   private _cachedLines: string[] | undefined;
   /** Width used for the current `_cachedLines` — cache is invalidated on resize. */
   private _cachedWidth: number | undefined;
-  /** Current scroll offset for the review screen (first visible question row index). */
-  private _reviewScrollOffset = 0;
 
   /** `true` when the form contains more than one question (shows tab bar). */
   get isMulti(): boolean {
@@ -109,6 +105,7 @@ export class Form {
     private readonly _done: (result: FormResult) => void,
   ) {
     this._questions = questions;
+    this._reviewScreen = new ReviewScreen(questions, _theme);
 
     // Wire onTabChange to manage input lifecycle.
     this._tabs = new Tabs(
@@ -124,7 +121,7 @@ export class Form {
           this._activateInput(questions[newIdx]!.input);
         }
         // Reset review scroll whenever the tab changes.
-        this._reviewScrollOffset = 0;
+        this._reviewScreen.reset();
       },
       () => this._refresh(),
     );
@@ -190,31 +187,18 @@ export class Form {
       }
     }
 
-    // 3. Review screen.
+    // 3. Review screen — delegate Enter/↑/↓; Tab/Shift+Tab fall through to Tabs.
     if (this._tabs.isOnReview) {
-      if (matchesKey(data, Key.enter)) {
+      const action = this._reviewScreen.handleInput(data);
+      if (action === "submit") {
         this._collectAndFinish(false);
         return;
       }
-      if (matchesKey(data, Key.up)) {
-        if (this._reviewScrollOffset > 0) {
-          this._reviewScrollOffset--;
-          this._refresh();
-        }
+      if (action === "scrolled") {
+        this._refresh();
         return;
       }
-      if (matchesKey(data, Key.down)) {
-        const maxOffset = Math.max(
-          0,
-          this._questions.length - REVIEW_MAX_VISIBLE,
-        );
-        if (this._reviewScrollOffset < maxOffset) {
-          this._reviewScrollOffset++;
-          this._refresh();
-        }
-        return;
-      }
-      // Tab/Shift+Tab handled by Tabs below.
+      // null → not consumed; fall through to Tabs.
     }
 
     // 4. Tabs handles Tab/Shift+Tab.
@@ -256,7 +240,7 @@ export class Form {
     if (this._showExitConfirm) {
       lines.push(...this._renderExitConfirm(maxW));
     } else if (this._tabs.isOnReview) {
-      lines.push(...this._renderReviewScreen(maxW));
+      lines.push(...this._reviewScreen.render(maxW, REVIEW_MAX_H));
     } else {
       lines.push(...this._renderInputFrame(this._tabs.activeIndex, maxW));
     }
@@ -401,107 +385,6 @@ export class Form {
   }
 
   // ── Review screen ─────────────────────────────────────────────────────────────
-
-  /**
-   * Renders the review screen showing all answers and completion warnings.
-   *
-   * Shows at most {@link REVIEW_MAX_VISIBLE} question rows at once.  When
-   * there are more questions, ↑/↓ scroll indicators appear and the body is
-   * always padded to exactly {@link REVIEW_MAX_VISIBLE} rows so the frame
-   * height stays constant and the tab bar never shifts.
-   *
-   * @param maxW - Maximum rendered width in columns.
-   * @returns Lines for the review screen.
-   */
-  private _renderReviewScreen(maxW: number): string[] {
-    const { _theme: theme } = this;
-    const lines: string[] = [];
-    const add = (s: string) => lines.push(truncateToWidth(s, maxW));
-
-    const reqCount = this._questions.filter(
-      (fq) => fq.required && !fq.input.isAnswered(),
-    ).length;
-    const optCount = this._questions.filter(
-      (fq) => !fq.required && !fq.input.isAnswered(),
-    ).length;
-
-    lines.push("");
-    add(` ${theme.bold(theme.fg("text", "Review your answers:"))}`);
-    lines.push("");
-
-    // Always emit exactly 2 lines for the warning block (message + blank)
-    // so the review frame height stays constant regardless of answer state.
-    if (reqCount > 0) {
-      add(
-        ` ${theme.fg("error", `✘ You have ${reqCount} unanswered required question${reqCount > 1 ? "s" : ""}`)}`,
-      );
-    } else if (optCount > 0) {
-      add(
-        ` ${theme.fg("warning", `⚠ You have ${optCount} unanswered question${optCount > 1 ? "s" : ""}`)}`,
-      );
-    } else {
-      lines.push(""); // placeholder — keeps height constant when all answered
-    }
-    lines.push("");
-
-    const maxHeaderW = Math.max(
-      ...this._questions.map((fq) => visibleWidth(fq.header)),
-    );
-
-    const total = this._questions.length;
-    const offset = this._reviewScrollOffset;
-    const visible = Math.min(REVIEW_MAX_VISIBLE, total);
-    const canScrollUp = offset > 0;
-    const canScrollDown = offset + REVIEW_MAX_VISIBLE < total;
-
-    // Scroll-up indicator.
-    add(canScrollUp ? theme.fg("dim", ` ↑ ${offset} more above`) : "");
-
-    // Render the visible slice.
-    const slice = this._questions.slice(offset, offset + visible);
-    for (const fq of slice) {
-      const input = fq.input;
-      const answered = input.isAnswered();
-      const reqUnanswered = fq.required && !answered;
-      const paddedHeader = fq.header.padEnd(maxHeaderW);
-
-      const valueText = answered
-        ? truncateToWidth(
-            input.getReviewValue(),
-            maxW - maxHeaderW - REVIEW_VALUE_PADDING,
-          )
-        : theme.fg("dim", "(not answered)");
-
-      const headerStyled = reqUnanswered
-        ? theme.fg("warning", paddedHeader)
-        : theme.bold(theme.fg("text", paddedHeader));
-
-      add(` ${headerStyled} ${theme.fg("dim", "→")} ${valueText}`);
-    }
-
-    // Pad to REVIEW_MAX_VISIBLE only when scrolling is active (total > max).
-    // With fewer questions, show them naturally without extra blank lines.
-    if (total > REVIEW_MAX_VISIBLE) {
-      const rendered = slice.length;
-      for (let i = rendered; i < REVIEW_MAX_VISIBLE; i++) {
-        lines.push("");
-      }
-    }
-
-    // Scroll-down indicator.
-    const remaining = total - offset - visible;
-    add(canScrollDown ? theme.fg("dim", ` ↓ ${remaining} more below`) : "");
-
-    lines.push("");
-    const scrollHint = total > REVIEW_MAX_VISIBLE ? " · ↑/↓ scroll" : "";
-    add(
-      theme.fg(
-        "dim",
-        ` Enter to submit · Tab/Shift+Tab to edit answers · Esc to cancel${scrollHint}`,
-      ),
-    );
-    return lines;
-  }
 
   // ── Collect and finish ────────────────────────────────────────────────────────
 
