@@ -399,7 +399,7 @@ const regexSchema = Type.Object(
     pattern: Type.Optional(
       Type.String({
         description:
-          "JS regex pattern without delimiters — capped at 500 chars to prevent ReDoS",
+          "JS regex pattern without delimiters — capped at 500 chars. Note: pattern length alone does not prevent ReDoS; input is also capped to limit backtracking.",
         examples: ["^[A-Z][a-z]+$", "^\\d{4}-\\d{2}-\\d{2}$"],
         maxLength: 500,
       }),
@@ -412,6 +412,9 @@ const regexSchema = Type.Object(
   },
 );
 
+/** Maximum length of input tested against a regex pattern, to limit backtracking. */
+const MAX_REGEX_INPUT_LENGTH = 1000;
+
 function validateRegex(
   value: string,
   c: Static<typeof regexSchema>,
@@ -419,8 +422,9 @@ function validateRegex(
   if (!c.pattern) return null;
   if (c.pattern.length > 500)
     return "Invalid configuration — regex pattern exceeds 500 chars";
+  const input = value.trim().slice(0, MAX_REGEX_INPUT_LENGTH);
   try {
-    return new RegExp(c.pattern).test(value.trim())
+    return new RegExp(c.pattern).test(input)
       ? null
       : (c.errorMessage ??
           `Input does not match the expected pattern /${c.pattern}/`);
