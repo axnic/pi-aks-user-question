@@ -54,9 +54,6 @@ import {
 /** Chars consumed by `"  N. [✔] Other: "` prefix when rendering the inline Other editor. */
 const OTHER_EDITOR_PREFIX_W = 12;
 
-/** Maximum number of options allowed (capped for display alignment). */
-const MAX_OPTIONS = 99;
-
 /**
  * Selectable option list — unified for single-select and multi-select.
  *
@@ -71,7 +68,6 @@ const MAX_OPTIONS = 99;
  *
  * Scrollbar is shown when options exceed {@link MAX_VISIBLE_OPTIONS}.
  * The viewport is always centred on the cursor.
- * Options are capped at {@link MAX_OPTIONS} for display alignment.
  */
 export class ChoiceInput extends BaseInput {
   readonly type: "choice" | "multichoice";
@@ -332,13 +328,11 @@ export class ChoiceInput extends BaseInput {
 
   /**
    * Total number of selectable rows, including the "Other..." row when `allowOther` is set.
-   * Capped at {@link MAX_OPTIONS} to ensure display alignment.
    *
    * @returns The count of options plus one if `allowOther` is enabled.
    */
   private _optionCount(): number {
-    const base = Math.min(this._q.options.length, MAX_OPTIONS);
-    return base + (this._q.allowOther !== false ? 1 : 0);
+    return this._q.options.length + (this._q.allowOther !== false ? 1 : 0);
   }
 
   /** @inheritdoc */

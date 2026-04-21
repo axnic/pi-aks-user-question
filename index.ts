@@ -17,8 +17,8 @@
  *
  * Question types:
  *   - text:        Single-line free-form text with optional format validation.
- *   - number:      Numeric input with optional range slider (←/→ increments).
- *   - choice:      Single-select list; auto-submits in single-question forms.
+ *   - number:      Numeric input with optional range slider (↑/↓ increments).
+ *   - choice:      Single-select list; Space selects, Enter advances.
  *   - multichoice: Multi-select checkboxes; Tab to navigate/submit.
  *   - boolean:     Yes/No toggle; ↑/↓ or Y/N to switch, Enter to confirm.
  *
@@ -28,9 +28,9 @@
  *
  * Keyboard shortcuts:
  *   Tab/Shift+Tab Switch between questions
- *   ↑/↓          Navigate options (choice/multichoice) or toggle (boolean)
- *   ←/→          Increment/decrement (number)
- *   Enter         Advance to next question / Confirm (text, number, boolean)
+ *   ↑/↓           Navigate options (choice/multichoice); toggle (boolean); increment/decrement (number)
+ *   ←/→           Cursor movement (text, number)
+ *   Enter         Validate and advance (text, number, boolean); advance (choice, multichoice)
  *   Space         Select/toggle option (choice/multichoice)
  *   Esc           Cancel form (with confirmation)
  */
@@ -59,8 +59,8 @@ export default function askUserQuestion(pi: ExtensionAPI) {
 
 Supports:
 - **text**: single-line free-form text with optional format validation (url, email, ip, number, regex)
-- **number**: numeric input — ←/→ to increment/decrement; visual slider when min and max are both set
-- **choice**: single-select numbered option list — auto-advances on selection
+- **number**: numeric input — ↑/↓ to increment/decrement; visual slider when min and max are both set
+- **choice**: single-select numbered option list — Space selects; Enter advances
 - **multichoice**: multi-select checkboxes — Enter/Space toggles, Tab to submit or advance
 - **boolean**: yes/no toggle — ↑/↓ or Y/N to switch, Enter to confirm
 

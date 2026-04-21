@@ -56,7 +56,7 @@ Run `mise run lint:commitlint` to validate a commit message manually.
 
 The extension is a single-layer pi extension that exposes one tool: **`ask_user_question`**.
 
-### Entry point (`src/index.ts`)
+### Entry point (`index.ts`)
 
 Registers the `ask_user_question` tool with pi. When invoked, it:
 
@@ -111,11 +111,10 @@ State transitions within inputs are pure where possible; side effects are limite
 
 ### Question types
 
-Raw questions from the LLM are normalised at construction time in `src/form/index.ts`. After normalisation:
+Questions from the LLM are structurally validated by `validateFormParams` in `src/form/index.ts` (checks required fields, type allowlist, option counts) and then passed as-is to the input constructors — there is no normalization step.
 
-- `type === "text"` → `multiSelect: false`, `allowOther: false`.
-- `type === "choice"` → `allowOther` defaults to `true`.
-- `validation` is only present on `"text"` questions.
+- `choice` and `multichoice` inputs treat an absent `allowOther` as `true`: the "Other…" row appears unless `allowOther: false` is set explicitly.
+- `validation` is available on both `text` questions (format-based string checks via `src/validation.ts`) and `number` questions (integer/min/max bounds).
 
 ### Commit scope list
 

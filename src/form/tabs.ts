@@ -85,7 +85,9 @@ export class Tabs {
   jumpTo(idx: number): void {
     const total = this.totalTabs;
     const wrapped = ((idx % total) + total) % total;
-    const old = this._activeIdx;
+    const oldEffective = this._isReview
+      ? this._questions.length
+      : this._activeIdx;
 
     if (this._hasReviewTab && wrapped === this._questions.length) {
       this._isReview = true;
@@ -94,7 +96,7 @@ export class Tabs {
       this._activeIdx = wrapped;
     }
 
-    this._onTabChange(old, wrapped, this._isReview);
+    this._onTabChange(oldEffective, wrapped, this._isReview);
     this._onRefresh();
   }
 
@@ -114,7 +116,6 @@ export class Tabs {
    * exists, the review tab is activated instead of a question tab.
    */
   private _navigate(direction: 1 | -1): void {
-    const old = this._activeIdx;
     const currentEffective = this._isReview
       ? this._questions.length
       : this._activeIdx;
@@ -128,7 +129,7 @@ export class Tabs {
       this._activeIdx = newIdx;
     }
 
-    this._onTabChange(old, newIdx, this._isReview);
+    this._onTabChange(currentEffective, newIdx, this._isReview);
     this._onRefresh();
   }
 

@@ -79,6 +79,7 @@ export const ChoiceOptionSchema = Type.Object({
 
 const optionsField = Type.Array(ChoiceOptionSchema, {
   minItems: 2,
+  maxItems: 99, // arbitrary upper bound to prevent abuse; the UI isn't designed for very long lists
   description: "Selectable options — minimum 2 required",
 });
 
@@ -133,7 +134,7 @@ export const TextQuestionSchema = Type.Object(
   },
 );
 
-/** Numeric input with optional ←/→ slider and bounds. */
+/** Numeric input with optional ↑/↓ step and slider. */
 export const NumberQuestionSchema = Type.Object(
   {
     ...baseFields,
@@ -146,14 +147,14 @@ export const NumberQuestionSchema = Type.Object(
     ),
     step: Type.Optional(
       Type.Number({
-        description: "Arrow key increment/decrement step (default: 1)",
+        description: "↑/↓ increment/decrement step (default: 1)",
       }),
     ),
     validation: Type.Optional(NumericValidationSchema),
   },
   {
     description:
-      "Numeric input — ←/→ arrows increment/decrement by step; a range slider appears when both min and max are set",
+      "Numeric input — ↑/↓ arrows increment/decrement by step; a range slider appears when both min and max are set",
     examples: [
       {
         type: "number",
@@ -270,7 +271,7 @@ export const BooleanQuestionSchema = Type.Object(
  * | type          | Input style                                 | value type |
  * |---------------|---------------------------------------------|------------|
  * | `text`        | Single-line text + optional validation      | string     |
- * | `number`      | Numeric field + ←/→ step + optional slider  | number     |
+ * | `number`      | Numeric field + ↑/↓ step + optional slider  | number     |
  * | `choice`      | Numbered list, picks one, auto-advances     | string     |
  * | `multichoice` | Checkboxes, toggles freely                  | string[]   |
  * | `boolean`     | Yes/No toggle, ↑/↓ or Y/N                  | boolean    |
