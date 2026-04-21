@@ -116,6 +116,20 @@ run = "node build.mjs"
 sources = ["src/**/*.ts", "build.mjs"]
 
 # =============================================================================
+# Documentation
+# =============================================================================
+# docs:schema  (ds)  — regenerate docs/schema.json from the TypeBox schemas
+#                      in src/schema.ts. Run after changing the tool parameter
+#                      schema to keep the JSON reference in sync.
+# =============================================================================
+
+[tasks."docs:schema"]
+description = "Regenerate docs/schema.json from the TypeBox schemas in src/schema.ts"
+alias = "ds"
+run = "npx tsx scripts/generate-schema.ts"
+sources = ["src/schema.ts", "src/validation.ts", "scripts/generate-schema.ts"]
+
+# =============================================================================
 # Dependencies
 # =============================================================================
 # deps:upgrade  (du)  — interactively bump all packages to their latest
