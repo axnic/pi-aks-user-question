@@ -25,7 +25,8 @@
     "@mariozechner/pi-ai": "^0.67.67",
     "@mariozechner/pi-coding-agent": "^0.67.67",
     "@mariozechner/pi-tui": "^0.67.67",
-    "@sinclair/typebox": "^0.34.0"
+    "@sinclair/typebox": "^0.34.0",
+    "zod": "^4.3.6"
   },
   "main": "dist/index.js",
   "exports": {
