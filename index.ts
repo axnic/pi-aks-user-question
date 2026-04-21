@@ -191,7 +191,7 @@ Group related questions in a single call instead of chaining multiple sequential
         const q = details.questions[a.questionId];
         const sym =
           a.value !== null ? theme.fg("success", "✔") : theme.fg("dim", "·");
-        const header = theme.fg("accent", q?.header ?? `Q${a.questionId}`);
+        const header = theme.fg("accent", q?.question ?? `Q${a.questionId}`);
         const value =
           a.value !== null
             ? formatAnswerValue(a.value)

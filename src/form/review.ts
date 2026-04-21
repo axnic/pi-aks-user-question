@@ -170,7 +170,7 @@ export class ReviewScreen {
     // ── Question rows ─────────────────────────────────────────────────────────
     const maxHeaderW =
       total > 0
-        ? Math.max(...this._questions.map((fq) => visibleWidth(fq.header)))
+        ? Math.max(...this._questions.map((fq) => visibleWidth(fq.question)))
         : 0;
 
     // Prefix: "│ " (2 chars) when scrollable, " " (1 char) otherwise.
@@ -188,7 +188,7 @@ export class ReviewScreen {
     for (let i = 0; i < slice.length; i++) {
       const fq = slice[i]!;
       const answered = fq.input.isAnswered();
-      const paddedHeader = fq.header.padEnd(maxHeaderW);
+      const paddedHeader = fq.question.padEnd(maxHeaderW);
 
       const valueText = answered
         ? truncateToWidth(fq.input.getReviewValue(), valueMaxW)

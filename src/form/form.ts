@@ -412,7 +412,7 @@ export class Form {
     const questions = this._questions.map(
       (fq) =>
         fq.originalQuestion ?? {
-          id: fq.header,
+          id: fq.question,
           type: fq.input.type,
           question: fq.question,
           header: fq.header,

@@ -57,9 +57,9 @@ describe("ReviewScreen — render (no scroll)", () => {
   it("shows all questions when they fit", () => {
     const screen = new ReviewScreen(makeQuestions(3, true), theme as any);
     const output = screen.render(80, 15).join("\n");
-    expect(output).toContain("Question 1");
-    expect(output).toContain("Question 2");
-    expect(output).toContain("Question 3");
+    expect(output).toContain("What is 1?");
+    expect(output).toContain("What is 2?");
+    expect(output).toContain("What is 3?");
   });
 
   it("shows answers with → separator", () => {

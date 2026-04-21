@@ -848,8 +848,8 @@ describe("Form — review screen scroll (fixed height, Bug fix)", () => {
     form.handleInput(K.down); // scroll down
     const lines = form.render(80);
     const joined = lines.join("\n");
-    expect(joined).not.toContain(" Q0 "); // first row scrolled out of view
-    expect(joined).toContain("Q1"); // second row now visible at top
+    expect(joined).not.toContain("Question 0?"); // first row scrolled out of view
+    expect(joined).toContain("Question 1?"); // second row now visible at top
   });
 
   it("with few questions: no padding — review is shorter than with many questions", () => {
