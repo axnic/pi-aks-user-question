@@ -403,8 +403,9 @@ describe("Form.render — multi-question", () => {
 // ── test 01: Single-choice ────────────────────────────────────────────────────
 
 describe("Form — test 01: single-choice (single-select, allowOther)", () => {
-  it("Enter selects first option and submits", () => {
+  it("Space selects first option; Enter submits", () => {
     const { form, done } = setup([langQ]);
+    form.handleInput(K.space);
     form.handleInput(K.enter);
     expect(done).toHaveBeenCalledOnce();
     expect(done.mock.calls[0]![0].cancelled).toBe(false);
@@ -417,10 +418,11 @@ describe("Form — test 01: single-choice (single-select, allowOther)", () => {
     expect(formQuestions[0]!.input.isAnswered()).toBe(false);
   });
 
-  it("↓↓ Enter selects third option", () => {
+  it("↓↓ Space selects third option; Enter submits", () => {
     const { form, done } = setup([langQ]);
     form.handleInput(K.down);
     form.handleInput(K.down);
+    form.handleInput(K.space);
     form.handleInput(K.enter);
     expect(done.mock.calls[0]![0].answers[0]!.value).toBe("Python");
   });
@@ -447,24 +449,24 @@ describe("Form — test 01: single-choice (single-select, allowOther)", () => {
 // ── test 02: Multi-select ─────────────────────────────────────────────────────
 
 describe("Form — test 02: multi-select (checkboxes)", () => {
-  it("Enter toggles a checkbox on", () => {
+  it("Space toggles a checkbox on", () => {
     const { form, formQuestions } = setup([interestsQ]);
-    form.handleInput(K.enter);
+    form.handleInput(K.space);
     expect(formQuestions[0]!.input.getTypedValue() as string[]).toContain(
       "Code Investigation",
     );
   });
 
-  it("Enter again toggles a checkbox off", () => {
+  it("Space again toggles a checkbox off", () => {
     const { form, formQuestions } = setup([interestsQ]);
-    form.handleInput(K.enter);
-    form.handleInput(K.enter);
+    form.handleInput(K.space);
+    form.handleInput(K.space);
     expect(formQuestions[0]!.input.getTypedValue() as string[]).not.toContain(
       "Code Investigation",
     );
   });
 
-  it("Space also toggles a checkbox", () => {
+  it("Space also toggles a checkbox (alias test)", () => {
     const { form, formQuestions } = setup([interestsQ]);
     form.handleInput(K.space);
     expect(formQuestions[0]!.input.getTypedValue() as string[]).toContain(
@@ -474,9 +476,9 @@ describe("Form — test 02: multi-select (checkboxes)", () => {
 
   it("multiple options can be selected", () => {
     const { form, formQuestions } = setup([interestsQ]);
-    form.handleInput(K.enter);
+    form.handleInput(K.space);
     form.handleInput(K.down);
-    form.handleInput(K.enter);
+    form.handleInput(K.space);
     const val = formQuestions[0]!.input.getTypedValue() as string[];
     expect(val).toContain("Code Investigation");
     expect(val).toContain("Development");
@@ -530,9 +532,9 @@ describe("Form — test 03: multi-question (tab bar, navigation, review)", () =>
 
   it("answers collected from all tabs on submit", () => {
     const { form, editor, done } = setup(questions);
-    form.handleInput(K.enter); // select Code Investigation
+    form.handleInput(K.space); // toggle Code Investigation
     form.handleInput(K.tab); // → vibeQ
-    form.handleInput(K.enter); // select Yes
+    form.handleInput(K.space); // select Yes
     form.handleInput(K.tab); // → feedbackQ
     editor.setText("All good");
     form.handleInput(K.tab); // → review (deactivate saves editor text)
@@ -625,7 +627,7 @@ describe("Form — test 06: review screen (required / optional state)", () => {
       reqStringQ,
     ]);
     form.handleInput(K.tab); // → reqChoiceQ
-    form.handleInput(K.enter); // select Containers
+    form.handleInput(K.space); // select Containers
     form.handleInput(K.tab); // → reqStringQ (activate)
     editor.setText("Agile workflow");
     form.handleInput(K.tab); // → review (deactivate saves text)
@@ -662,16 +664,18 @@ describe("Form — test 07: binary choice (allowOther: false)", () => {
     options: [{ label: "Agree" }, { label: "Disagree" }],
   };
 
-  it("Enter selects Agree and submits", () => {
+  it("Space selects Agree; Enter submits", () => {
     const { form, done } = setup([binaryQ]);
+    form.handleInput(K.space);
     form.handleInput(K.enter);
     expect(done).toHaveBeenCalledOnce();
     expect(done.mock.calls[0]![0]!.answers[0]!.value).toBe("Agree");
   });
 
-  it("↓ Enter selects Disagree", () => {
+  it("↓ Space selects Disagree; Enter submits", () => {
     const { form, done } = setup([binaryQ]);
     form.handleInput(K.down);
+    form.handleInput(K.space);
     form.handleInput(K.enter);
     expect(done.mock.calls[0]![0]!.answers[0]!.value).toBe("Disagree");
   });
@@ -767,12 +771,12 @@ describe("Form — test 08: complex full flow (5 questions, mixed types)", () =>
   it("full form: answer all questions and submit", () => {
     const { form, editor, done } = setup(questions);
 
-    form.handleInput(K.enter); // Role: select Frontend Engineer
+    form.handleInput(K.space); // Role: select Frontend Engineer
     form.handleInput(K.tab); // → Stack
 
-    form.handleInput(K.enter); // toggle TypeScript
+    form.handleInput(K.space); // toggle TypeScript
     form.handleInput(K.down);
-    form.handleInput(K.enter); // toggle React
+    form.handleInput(K.space); // toggle React
     form.handleInput(K.tab); // → Pain Points
 
     form.handleInput(K.tab); // skip Pain Points → Goal
@@ -780,7 +784,7 @@ describe("Form — test 08: complex full flow (5 questions, mixed types)", () =>
     editor.setText("Improve build pipeline");
     form.handleInput(K.tab); // → Timeline (deactivate saves text)
 
-    form.handleInput(K.enter); // select Today
+    form.handleInput(K.space); // select Today
     form.handleInput(K.tab); // → Review
 
     form.handleInput(K.enter); // submit
@@ -940,13 +944,14 @@ describe("Form — Other... mode integration", () => {
   it("Escape in otherMode exits otherMode without cancelling form", () => {
     const { form, editor, done } = setup([langQ]);
     for (let i = 0; i < 4; i++) form.handleInput(K.down); // reach Other row
-    form.handleInput(K.enter); // enter otherMode
+    form.handleInput(K.space); // enter otherMode
     editor.setText("partial text");
     form.handleInput(K.escape); // exit otherMode, NOT cancel form
     expect(done).not.toHaveBeenCalled();
     // Cursor is back on Other... row — navigate up to a regular option and submit
     form.handleInput(K.up); // → Go
-    form.handleInput(K.enter); // select Go and submit
+    form.handleInput(K.space); // select Go
+    form.handleInput(K.enter); // advance/submit
     expect(done).toHaveBeenCalledOnce();
     expect(done.mock.calls[0]![0]!.answers[0]!.value).toBe("Go");
   });
@@ -954,7 +959,7 @@ describe("Form — Other... mode integration", () => {
   it("typing text in otherMode and confirming gives that value", () => {
     const { form, editor, done } = setup([langQ]);
     for (let i = 0; i < 4; i++) form.handleInput(K.down);
-    form.handleInput(K.enter); // enter otherMode
+    form.handleInput(K.space); // enter otherMode
     editor.setText("Haskell");
     form.handleInput(K.enter); // confirm
     expect(done).toHaveBeenCalledOnce();

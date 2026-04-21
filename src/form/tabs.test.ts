@@ -315,7 +315,7 @@ describe("Tabs.render — status symbols", () => {
   it("shows ✔ for answered question", () => {
     const fqs = [makeFormQuestion("Step1"), makeFormQuestion("Step2")];
     const input = fqs[0]!.input as ChoiceInput;
-    input.handleInput("\r"); // Enter → select first option
+    input.handleInput(" "); // Space → select first option
     const tabs = new Tabs(fqs, true, vi.fn(), vi.fn());
     const bar = tabs.render(theme, 200);
     expect(bar).toMatch(/✔\s+\[?Step1/);

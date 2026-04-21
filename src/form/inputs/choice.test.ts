@@ -94,26 +94,34 @@ describe("ChoiceInput (single) — state machine", () => {
     expect(input.isAnswered()).toBe(false);
   });
 
-  it("Enter selects first option and calls onAdvance", () => {
+  it("Space selects first option without advancing", () => {
+    const cb = noopCallbacks();
+    const input = new ChoiceInput(choiceQ, mockEditor(), cb);
+    input.handleInput(" ");
+    expect(input.isAnswered()).toBe(true);
+    expect(input.getTypedValue()).toBe("TypeScript");
+    expect(cb.onAdvance).not.toHaveBeenCalled();
+  });
+
+  it("Enter advances without requiring a selection", () => {
     const cb = noopCallbacks();
     const input = new ChoiceInput(choiceQ, mockEditor(), cb);
     input.handleInput("\r");
-    expect(input.isAnswered()).toBe(true);
-    expect(input.getTypedValue()).toBe("TypeScript");
     expect(cb.onAdvance).toHaveBeenCalledOnce();
+    expect(input.isAnswered()).toBe(false);
   });
 
-  it("↓ Enter selects second option", () => {
+  it("↓ Space selects second option", () => {
     const input = new ChoiceInput(choiceQ, mockEditor(), noopCallbacks());
     input.handleInput("\x1b[B"); // ↓
-    input.handleInput("\r");
+    input.handleInput(" ");
     expect(input.getTypedValue()).toBe("Rust");
   });
 
   it("↑ at position 0 stays at 0", () => {
     const input = new ChoiceInput(choiceQ, mockEditor(), noopCallbacks());
     input.handleInput("\x1b[A"); // ↑ — no effect
-    input.handleInput("\r");
+    input.handleInput(" ");
     expect(input.getTypedValue()).toBe("TypeScript");
   });
 
@@ -126,7 +134,7 @@ describe("ChoiceInput (single) — state machine", () => {
     const input = new ChoiceInput(binaryQ, mockEditor(), noopCallbacks());
     input.handleInput("\x1b[B"); // → Disagree
     input.handleInput("\x1b[B"); // → stays at Disagree
-    input.handleInput("\r");
+    input.handleInput(" ");
     expect(input.getTypedValue()).toBe("Disagree");
   });
 
@@ -140,16 +148,15 @@ describe("ChoiceInput (single) — state machine", () => {
 
   it("getReviewValue() returns selected label", () => {
     const input = new ChoiceInput(choiceQ, mockEditor(), noopCallbacks());
-    input.handleInput("\r");
+    input.handleInput(" ");
     expect(input.getReviewValue()).toBe("TypeScript");
   });
 
-  it("re-selecting same option is a no-op (cannot devalidate)", () => {
+  it("re-selecting same option via Space is a no-op (cannot devalidate)", () => {
     const cb = noopCallbacks();
     const input = new ChoiceInput(choiceQ, mockEditor(), cb);
-    input.handleInput("\r"); // select TypeScript
-    cb.onAdvance.mockClear();
-    input.handleInput("\r"); // re-select same — should not call onAdvance again
+    input.handleInput(" "); // select TypeScript
+    input.handleInput(" "); // re-select same — should still be selected
     expect(cb.onAdvance).not.toHaveBeenCalled();
     expect(input.getTypedValue()).toBe("TypeScript");
   });
@@ -168,26 +175,26 @@ describe("ChoiceInput (multi) — state machine", () => {
     expect(input.isAnswered()).toBe(false);
   });
 
-  it("Enter toggles a checkbox on", () => {
+  it("Space toggles a checkbox on", () => {
     const input = new ChoiceInput(multiQ, mockEditor(), noopCallbacks(), true);
-    input.handleInput("\r");
+    input.handleInput(" ");
     expect(input.isAnswered()).toBe(true);
     expect(input.getTypedValue() as string[]).toContain("Code");
   });
 
-  it("Enter again toggles the same checkbox off", () => {
+  it("Space again toggles the same checkbox off", () => {
     const input = new ChoiceInput(multiQ, mockEditor(), noopCallbacks(), true);
-    input.handleInput("\r");
-    input.handleInput("\r"); // toggle off
+    input.handleInput(" ");
+    input.handleInput(" "); // toggle off
     expect(input.isAnswered()).toBe(false);
     expect(input.getTypedValue()).toEqual([]);
   });
 
   it("multiple options can be selected simultaneously", () => {
     const input = new ChoiceInput(multiQ, mockEditor(), noopCallbacks(), true);
-    input.handleInput("\r"); // Code
+    input.handleInput(" "); // Code
     input.handleInput("\x1b[B"); // ↓
-    input.handleInput("\r"); // Design
+    input.handleInput(" "); // Design
     const val = input.getTypedValue() as string[];
     expect(val).toContain("Code");
     expect(val).toContain("Design");
@@ -195,17 +202,19 @@ describe("ChoiceInput (multi) — state machine", () => {
 
   it("getReviewValue() joins labels with comma", () => {
     const input = new ChoiceInput(multiQ, mockEditor(), noopCallbacks(), true);
-    input.handleInput("\r"); // Code
+    input.handleInput(" "); // Code
     input.handleInput("\x1b[B"); // ↓
-    input.handleInput("\r"); // Design
+    input.handleInput(" "); // Design
     expect(input.getReviewValue()).toBe("Code, Design");
   });
 
-  it("does NOT auto-advance on selection", () => {
+  it("Space does not auto-advance; Enter advances to next question", () => {
     const cb = noopCallbacks();
     const input = new ChoiceInput(multiQ, mockEditor(), cb, true);
-    input.handleInput("\r");
+    input.handleInput(" ");
     expect(cb.onAdvance).not.toHaveBeenCalled();
+    input.handleInput("\r");
+    expect(cb.onAdvance).toHaveBeenCalledOnce();
   });
 });
 
@@ -245,7 +254,7 @@ describe("ChoiceInput (single) — renderWidget", () => {
   it("selected option shows ✔", () => {
     const ed = mockEditor();
     const input = new ChoiceInput(q, ed, noopCallbacks());
-    input.handleInput("\r");
+    input.handleInput(" ");
     const lines = input.renderWidget(ctx(ed));
     expect(lines[0]).toContain("✔");
   });
@@ -272,9 +281,9 @@ describe("ChoiceInput (multi) — renderWidget", () => {
   it("multiple options can show ✔ simultaneously", () => {
     const ed = mockEditor();
     const input = new ChoiceInput(multiQ, ed, noopCallbacks(), true);
-    input.handleInput("\r"); // toggle Code
+    input.handleInput(" "); // toggle Code
     input.handleInput("\x1b[B"); // ↓
-    input.handleInput("\r"); // toggle Design
+    input.handleInput(" "); // toggle Design
     const lines = input.renderWidget(ctx(ed));
     const checkedLines = lines.filter((l) => l.includes("✔"));
     expect(checkedLines).toHaveLength(2);
@@ -368,10 +377,10 @@ describe("ChoiceInput — maxH vertical scaling", () => {
 // ── Other... mode ─────────────────────────────────────────────────────────────
 
 describe("ChoiceInput — Other... mode", () => {
-  it("pressing Enter on Other row enters otherMode", () => {
+  it("pressing Space on Other row enters otherMode", () => {
     const input = new ChoiceInput(choiceQ, mockEditor(), noopCallbacks());
     for (let i = 0; i < 4; i++) input.handleInput("\x1b[B"); // reach Other row
-    input.handleInput("\r"); // enter otherMode
+    input.handleInput(" "); // enter otherMode
     // In otherMode: input consumes all keys
     expect(input.handleInput("Z")).toBe(true);
   });
@@ -381,7 +390,7 @@ describe("ChoiceInput — Other... mode", () => {
     const ed = mockEditor();
     const input = new ChoiceInput(choiceQ, ed, cb);
     for (let i = 0; i < 4; i++) input.handleInput("\x1b[B");
-    input.handleInput("\r"); // enter otherMode
+    input.handleInput(" "); // enter otherMode
     input.handleInput("\x1b"); // exit otherMode
     expect(cb.onAdvance).not.toHaveBeenCalled();
     expect(input.isAnswered()).toBe(false);
@@ -392,7 +401,7 @@ describe("ChoiceInput — Other... mode", () => {
     const ed = mockEditor();
     const input = new ChoiceInput(choiceQ, ed, cb);
     for (let i = 0; i < 4; i++) input.handleInput("\x1b[B");
-    input.handleInput("\r"); // enter otherMode
+    input.handleInput(" "); // enter otherMode
     (ed as unknown as MockEditor).setText("Haskell");
     input.handleInput("\r"); // confirm
     expect(cb.onAdvance).toHaveBeenCalledOnce();

@@ -11,21 +11,21 @@
  *   │   4. [ ] Go
  *
  * Keyboard:
- *   ↑/↓          — move cursor
- *   Enter/Space  — toggle option (or open Other editor)
- *   Escape       — exit Other mode (normal mode: not consumed)
+ *   ↑/↓    — move cursor
+ *   Space  — select option (single) or toggle checkbox (multi); opens Other editor on Other row
+ *   Enter  — advance to the next question (always)
+ *   Escape — exit Other mode (normal mode: not consumed)
  *
  * Scrollbar shown when options > MAX_VISIBLE_OPTIONS.
  * Viewport is centered on cursor.
  *
  * Single-select (multi=false):
- *   - On selection: clear all + select (reset others)
- *   - A selected choice CANNOT be devalidated
- *   - Auto-advance after selection (via onAdvance callback)
+ *   - Space: clear all + select (reset others). A selected choice CANNOT be devalidated.
+ *   - Enter: always advances regardless of selection state.
  *
  * Multi-select (multi=true):
- *   - Toggle: select/deselect freely
- *   - No auto-advance
+ *   - Space: toggle selected/deselected freely.
+ *   - Enter: always advances regardless of selection state.
  *
  * Unhandled keys (Tab, ←/→) return false — Form/Tabs handle them.
  */
@@ -120,7 +120,7 @@ export class ChoiceInput extends BaseInput {
       return true;
     }
 
-    if (matchesKey(data, Key.enter) || matchesKey(data, Key.space)) {
+    if (matchesKey(data, Key.space)) {
       const isOtherRow =
         this._q.allowOther !== false &&
         this._cursorIdx === this._q.options.length;
@@ -145,13 +145,18 @@ export class ChoiceInput extends BaseInput {
             this._selected.clear();
             this._otherText = ""; // deselect any previous Other entry
             this._selected.add(opt.label);
-            this._callbacks.onAdvance();
           }
           // If already selected → do nothing (cannot devalidate).
         }
         this._callbacks.onRefresh();
         return true;
       }
+    }
+
+    // Enter: always advance to the next question.
+    if (matchesKey(data, Key.enter)) {
+      this._callbacks.onAdvance();
+      return true;
     }
 
     return false;
@@ -178,11 +183,7 @@ export class ChoiceInput extends BaseInput {
         this._selected.clear();
       }
       this._editor.setText("");
-      if (!this._multi) {
-        this._callbacks.onAdvance();
-      } else {
-        this._callbacks.onRefresh();
-      }
+      this._callbacks.onAdvance();
       return true;
     }
 
@@ -372,10 +373,8 @@ export class ChoiceInput extends BaseInput {
     }
     return [
       { keys: [Key.up, Key.down], action: "navigate" },
-      {
-        keys: [Key.enter],
-        action: this._multi ? "toggle" : "select",
-      },
+      { keys: [Key.space], action: this._multi ? "toggle" : "select" },
+      { keys: [Key.enter], action: "next" },
     ];
   }
 
