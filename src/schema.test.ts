@@ -36,11 +36,6 @@ describe("schema — question field pattern", () => {
     ).toBe(true);
   });
 
-  it("accepts a question without '?' (imperative form)", () => {
-    const q = { ...baseChoice, question: "Choose a runtime" };
-    expect(Value.Check(AskUserQuestionParams, { questions: [q] })).toBe(true);
-  });
-
   it("rejects a question with text after '?'", () => {
     const q = {
       ...baseChoice,
@@ -59,6 +54,14 @@ describe("schema — question field pattern", () => {
 
   it("rejects a question with multiple '?' marks", () => {
     const q = { ...baseChoice, question: "Do you want A? Or B?" };
+    expect(Value.Check(AskUserQuestionParams, { questions: [q] })).toBe(false);
+  });
+
+  it("rejects a question without a trailing '?'", () => {
+    const q = {
+      ...baseChoice,
+      question: "Choose a runtime",
+    };
     expect(Value.Check(AskUserQuestionParams, { questions: [q] })).toBe(false);
   });
 });

@@ -41,7 +41,7 @@ const baseFields = {
   question: Type.String({
     description:
       "Full question text — must end with '?' and contain nothing after it. Keep it short (one sentence, ≤10 words); never add notes, examples, or parenthetical remarks after the '?'.",
-    pattern: "^[^?]*\\??$",
+    pattern: "^[^?]*\\?$",
     examples: ["Which programming language do you prefer?"],
   }),
   header: Type.String({

@@ -15,9 +15,7 @@ allowed-tools: Bash(git:*) Bash(gh:*) Bash(pnpm:*) Bash(mise:*)
 
 Before pushing anything, read these files to understand conventions:
 
-- `AGENTS.md` — architecture, key conventions
-- `CONTRIBUTING.md` — setup, tooling, test layout, commit format
-- `CHANGELOG.md` — recent changes; informs a good `## [Unreleased]` entry
+- `AGENTS.md` — architecture, key conventions, commit format
 - `.commitlintrc.js` — enforced commit types and scopes
 
 Run the full check suite and confirm it is green:
@@ -50,12 +48,12 @@ Every commit must follow the format enforced by `.commitlintrc.js`:
 <type>(<scope>): <Subject in sentence case>
 ```
 
-**Allowed scopes:** `sdk` · `ui` · `core` · `settings` · `docs` · `deps` · `tooling`
+**Allowed scopes:** `form` · `schema` · `validation` · `docs` · `deps` · `tooling`
 
 Every commit must include both a DCO sign-off and a cryptographic signature:
 
 ```sh
-git commit -s -S -m "feat(sdk): Add S.color() builder for hex color settings"
+git commit -s -S -m "feat(form): Add scrollbar to long option lists"
 ```
 
 ## Opening the PR
@@ -101,8 +99,8 @@ mise run lint
 npx vitest run --reporter=verbose
 ```
 
-If the change touches the TUI panel, add manual steps:
-`/extensions:settings` → navigate to the affected setting → verify behaviour.
+If the change touches the TUI form, add manual steps:
+invoke `ask_user_question` via pi → navigate the form → verify behaviour.
 
 ### Impact
 
@@ -112,12 +110,12 @@ If the change touches the TUI panel, add manual steps:
 
 ### Checklist — items AI agents often miss
 
-| Item                   | How to satisfy it                                         |
-| ---------------------- | --------------------------------------------------------- |
-| Tests added            | Add a colocated `.spec.ts` file or extend an existing one |
-| `sdk/index.ts` updated | Export new symbols; remove deleted ones                   |
-| `sdk/docs/` updated    | Update reference tables, hook docs, and counts            |
-| Commits signed off     | `git commit -s` on every commit                           |
+| Item               | How to satisfy it                                         |
+| ------------------ | --------------------------------------------------------- |
+| Tests added        | Add a colocated `.test.ts` file or extend an existing one |
+| `docs/` updated    | Update schema.md, ui.md, architecture.md if applicable    |
+| Schema regenerated | Run `mise run docs:schema` if schema.ts changed           |
+| Commits signed off | `git commit -s` on every commit                           |
 
 ## Responding to review feedback
 
@@ -132,10 +130,10 @@ git push --force-with-lease
 For larger review rounds, prefer a new commit (easier to diff):
 
 ```sh
-git commit -s -m "fix(sdk): Address review: rename field to colorValue"
+git commit -s -m "fix(form): Address review: rename field to questionId"
 ```
 
 ## CI
 
-The CI runs `pnpm test`, `mise run lint`, and `mise run build`. If any check is
+The CI runs `pnpm typecheck`, `pnpm test`, `mise run lint`, and `mise run build`. If any check is
 red, fix it in a new commit — do not skip hooks or force-merge.

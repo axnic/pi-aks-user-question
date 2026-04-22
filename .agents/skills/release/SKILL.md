@@ -38,27 +38,27 @@ Add `--field notes="..."` to override the auto-generated release notes.
 
 - Use `rc-*` first to validate on npm before a stable release.
 - Use `patch` for bug fixes and CI/tooling changes with no API impact.
-- Use `minor` for new hooks, builders, or SDK additions (backwards-compatible).
-- Use `major` for breaking changes to the public SDK API or storage keys.
+- Use `minor` for new question types, validation formats, or form features (backwards-compatible).
+- Use `major` for breaking changes to the tool parameter schema or FormResult structure.
 
 ## What the workflow does
 
 1. Computes the next version from the last git tag.
-2. Bumps `version` in `package.json` and `sdk/package.json`.
+2. Bumps `version` in `package.json`.
 3. Runs typecheck + tests + build (fails fast if anything is red).
 4. Commits the version bump and pushes a `v<version>` tag.
 5. Generates release notes (deterministic draft + Copilot polish).
 6. Opens a GitHub Release (`--prerelease` for RC, `--latest` for stable).
-7. `release.publish.yaml` triggers automatically and publishes to npm.
+7. `workflow_run.publish.yaml` triggers automatically and publishes to npm.
 
 ## Publishing to npm
 
-Publishing is handled by `release.publish.yaml` — it fires automatically
-when a GitHub Release is published. It:
+Publishing is handled by `workflow_run.publish.yaml` — it fires automatically
+when the Release workflow completes. It:
 
 - Validates (typecheck + tests + build)
-- Generates CycloneDX SBOMs via Syft
-- Publishes all workspace packages to npm with OIDC provenance (`--provenance`)
+- Generates CycloneDX SBOM via Syft
+- Publishes to npm with OIDC provenance (`--provenance`)
 - Signs SBOMs and publish summary keylessly via cosign (Sigstore/Rekor)
 - Attaches all artefacts to the GitHub Release
 

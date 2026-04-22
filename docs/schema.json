@@ -1,0 +1,917 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ask-user-question",
+  "title": "AskUserQuestionParams",
+  "description": "Parameters for the ask_user_question tool. Defines one or more questions to present to the user via an interactive TUI form. Supports text, number, choice, multichoice, and boolean question types.",
+  "type": "object",
+  "required": ["questions"],
+  "properties": {
+    "questions": {
+      "minItems": 1,
+      "description": "Questions to display. A tab bar with scroll appears automatically for multiple questions.",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "description": "Single-line free-form text with optional format validation",
+            "examples": [
+              {
+                "type": "text",
+                "question": "What is the API endpoint?",
+                "header": "Endpoint",
+                "placeholder": "e.g. https://api.example.com",
+                "validation": {
+                  "format": "url",
+                  "protocols": ["https"]
+                }
+              }
+            ],
+            "type": "object",
+            "required": ["id", "question", "header", "type", "placeholder"],
+            "properties": {
+              "id": {
+                "description": "Stable identifier for this question — used to match answers back to questions",
+                "examples": ["language", "port", "enable-tls"],
+                "type": "string"
+              },
+              "question": {
+                "description": "Full question text — must end with '?' and contain nothing after it. Keep it short (one sentence, ≤10 words); never add notes, examples, or parenthetical remarks after the '?'.",
+                "pattern": "^[^?]*\\?$",
+                "examples": ["Which programming language do you prefer?"],
+                "type": "string"
+              },
+              "header": {
+                "description": "Short tab label (≤12 chars recommended)",
+                "examples": ["Language", "Port", "Enable TLS"],
+                "type": "string"
+              },
+              "required": {
+                "description": "Mark as mandatory — tab shows ✦ and review warns if unanswered (default: false)",
+                "type": "boolean"
+              },
+              "description": {
+                "description": "Optional context shown below the question text (max 4 lines)",
+                "examples": ["This will be used as the default namespace."],
+                "type": "string"
+              },
+              "type": {
+                "const": "text",
+                "type": "string"
+              },
+              "placeholder": {
+                "description": "Single-line hint text shown in the empty input field (no newlines — the input is a single-line field)",
+                "pattern": "^[^\\n\\r]*$",
+                "examples": ["e.g. https://example.com", "e.g. 8080"],
+                "type": "string"
+              },
+              "validation": {
+                "anyOf": [
+                  {
+                    "description": "Validates a well-formed URL, optionally restricted to specific schemes",
+                    "examples": [
+                      {
+                        "format": "url"
+                      },
+                      {
+                        "format": "url",
+                        "protocols": ["https"]
+                      }
+                    ],
+                    "type": "object",
+                    "required": ["format"],
+                    "properties": {
+                      "format": {
+                        "const": "url",
+                        "type": "string"
+                      },
+                      "protocols": {
+                        "description": "Allowed URL schemes — accepts all schemes when omitted",
+                        "examples": [["https"], ["https", "http"]],
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "errorMessage": {
+                        "description": "Custom error message — overrides the built-in message on failure",
+                        "examples": [
+                          "Must be a valid URL",
+                          "Port must be between 1 and 65535"
+                        ],
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "description": "Validates an email address (user@domain.tld) with optional domain filtering",
+                    "examples": [
+                      {
+                        "format": "email"
+                      },
+                      {
+                        "format": "email",
+                        "domainAllowlist": ["example.com"]
+                      }
+                    ],
+                    "type": "object",
+                    "required": ["format"],
+                    "properties": {
+                      "format": {
+                        "const": "email",
+                        "type": "string"
+                      },
+                      "domainAllowlist": {
+                        "description": "Accept only these domains — all domains accepted when omitted",
+                        "examples": [["example.com", "company.org"]],
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "domainDenylist": {
+                        "description": "Reject these domains (applied after allowlist)",
+                        "examples": [["tempmail.com"]],
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "errorMessage": {
+                        "description": "Custom error message — overrides the built-in message on failure",
+                        "examples": [
+                          "Must be a valid URL",
+                          "Port must be between 1 and 65535"
+                        ],
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "description": "Accepts IPv4 or IPv6 — use ipv4/ipv6 to enforce a specific version",
+                    "examples": [
+                      {
+                        "format": "ip"
+                      },
+                      {
+                        "format": "ip",
+                        "allowlist": ["10.0.0.0/8"]
+                      }
+                    ],
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "required": ["format", "allowlist"],
+                        "properties": {
+                          "format": {
+                            "const": "ip",
+                            "type": "string"
+                          },
+                          "allowlist": {
+                            "description": "Accept only these addresses or CIDR ranges (e.g. 192.168.1.0/24, 2001:db8::/32)",
+                            "examples": [["10.0.0.0/8", "192.168.1.1"]],
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "errorMessage": {
+                            "description": "Custom error message — overrides the built-in message on failure",
+                            "examples": [
+                              "Must be a valid URL",
+                              "Port must be between 1 and 65535"
+                            ],
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["format", "denylist"],
+                        "properties": {
+                          "format": {
+                            "const": "ip",
+                            "type": "string"
+                          },
+                          "denylist": {
+                            "description": "Reject these addresses or CIDR ranges",
+                            "examples": [["169.254.0.0/16"]],
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "errorMessage": {
+                            "description": "Custom error message — overrides the built-in message on failure",
+                            "examples": [
+                              "Must be a valid URL",
+                              "Port must be between 1 and 65535"
+                            ],
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["format"],
+                        "properties": {
+                          "format": {
+                            "const": "ip",
+                            "type": "string"
+                          },
+                          "errorMessage": {
+                            "description": "Custom error message — overrides the built-in message on failure",
+                            "examples": [
+                              "Must be a valid URL",
+                              "Port must be between 1 and 65535"
+                            ],
+                            "type": "string"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "description": "Strict dotted-decimal IPv4 — each octet 0–255",
+                    "examples": [
+                      {
+                        "format": "ipv4"
+                      },
+                      {
+                        "format": "ipv4",
+                        "denylist": ["169.254.0.0/16"]
+                      }
+                    ],
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "required": ["format", "allowlist"],
+                        "properties": {
+                          "format": {
+                            "const": "ipv4",
+                            "type": "string"
+                          },
+                          "allowlist": {
+                            "description": "Accept only these IPv4 addresses or CIDR ranges (e.g. 10.0.0.0/8)",
+                            "examples": [["10.0.0.0/8", "192.168.1.1"]],
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "errorMessage": {
+                            "description": "Custom error message — overrides the built-in message on failure",
+                            "examples": [
+                              "Must be a valid URL",
+                              "Port must be between 1 and 65535"
+                            ],
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["format", "denylist"],
+                        "properties": {
+                          "format": {
+                            "const": "ipv4",
+                            "type": "string"
+                          },
+                          "denylist": {
+                            "description": "Reject these IPv4 addresses or CIDR ranges",
+                            "examples": [["169.254.0.0/16"]],
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "errorMessage": {
+                            "description": "Custom error message — overrides the built-in message on failure",
+                            "examples": [
+                              "Must be a valid URL",
+                              "Port must be between 1 and 65535"
+                            ],
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["format"],
+                        "properties": {
+                          "format": {
+                            "const": "ipv4",
+                            "type": "string"
+                          },
+                          "errorMessage": {
+                            "description": "Custom error message — overrides the built-in message on failure",
+                            "examples": [
+                              "Must be a valid URL",
+                              "Port must be between 1 and 65535"
+                            ],
+                            "type": "string"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "description": "RFC 4291 IPv6 address",
+                    "examples": [
+                      {
+                        "format": "ipv6"
+                      },
+                      {
+                        "format": "ipv6",
+                        "allowlist": ["2001:db8::/32"]
+                      }
+                    ],
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "required": ["format", "allowlist"],
+                        "properties": {
+                          "format": {
+                            "const": "ipv6",
+                            "type": "string"
+                          },
+                          "allowlist": {
+                            "description": "Accept only these IPv6 addresses or CIDR ranges (e.g. 2001:db8::/32)",
+                            "examples": [["2001:db8::/32"]],
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "errorMessage": {
+                            "description": "Custom error message — overrides the built-in message on failure",
+                            "examples": [
+                              "Must be a valid URL",
+                              "Port must be between 1 and 65535"
+                            ],
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["format", "denylist"],
+                        "properties": {
+                          "format": {
+                            "const": "ipv6",
+                            "type": "string"
+                          },
+                          "denylist": {
+                            "description": "Reject these IPv6 addresses or CIDR ranges",
+                            "examples": [["fe80::/10"]],
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "errorMessage": {
+                            "description": "Custom error message — overrides the built-in message on failure",
+                            "examples": [
+                              "Must be a valid URL",
+                              "Port must be between 1 and 65535"
+                            ],
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["format"],
+                        "properties": {
+                          "format": {
+                            "const": "ipv6",
+                            "type": "string"
+                          },
+                          "errorMessage": {
+                            "description": "Custom error message — overrides the built-in message on failure",
+                            "examples": [
+                              "Must be a valid URL",
+                              "Port must be between 1 and 65535"
+                            ],
+                            "type": "string"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "description": "Any finite decimal or integer; optional inclusive min/max bounds",
+                    "examples": [
+                      {
+                        "format": "number"
+                      },
+                      {
+                        "format": "number",
+                        "min": 0,
+                        "max": 100
+                      }
+                    ],
+                    "type": "object",
+                    "required": ["format"],
+                    "properties": {
+                      "format": {
+                        "const": "number",
+                        "type": "string"
+                      },
+                      "min": {
+                        "description": "Minimum allowed value (inclusive)",
+                        "type": "number"
+                      },
+                      "max": {
+                        "description": "Maximum allowed value (inclusive)",
+                        "type": "number"
+                      },
+                      "errorMessage": {
+                        "description": "Custom error message — overrides the built-in message on failure",
+                        "examples": [
+                          "Must be a valid URL",
+                          "Port must be between 1 and 65535"
+                        ],
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "description": "Whole number only (no decimal part); optional inclusive min/max bounds",
+                    "examples": [
+                      {
+                        "format": "integer",
+                        "min": 1
+                      },
+                      {
+                        "format": "integer",
+                        "min": 0,
+                        "max": 255
+                      }
+                    ],
+                    "type": "object",
+                    "required": ["format"],
+                    "properties": {
+                      "format": {
+                        "const": "integer",
+                        "type": "string"
+                      },
+                      "min": {
+                        "description": "Minimum allowed value (inclusive)",
+                        "type": "number"
+                      },
+                      "max": {
+                        "description": "Maximum allowed value (inclusive)",
+                        "type": "number"
+                      },
+                      "errorMessage": {
+                        "description": "Custom error message — overrides the built-in message on failure",
+                        "examples": [
+                          "Must be a valid URL",
+                          "Port must be between 1 and 65535"
+                        ],
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "description": "Matches the input against a custom JS regular expression",
+                    "examples": [
+                      {
+                        "format": "regex",
+                        "pattern": "^[A-Z]"
+                      }
+                    ],
+                    "type": "object",
+                    "required": ["format"],
+                    "properties": {
+                      "format": {
+                        "const": "regex",
+                        "type": "string"
+                      },
+                      "pattern": {
+                        "description": "JS regex pattern without delimiters — capped at 500 chars to prevent ReDoS",
+                        "examples": ["^[A-Z][a-z]+$", "^\\d{4}-\\d{2}-\\d{2}$"],
+                        "maxLength": 500,
+                        "type": "string"
+                      },
+                      "errorMessage": {
+                        "description": "Custom error message — overrides the built-in message on failure",
+                        "examples": [
+                          "Must be a valid URL",
+                          "Port must be between 1 and 65535"
+                        ],
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "description": "Numeric input — ↑/↓ arrows increment/decrement by step; a range slider appears when both min and max are set",
+            "examples": [
+              {
+                "type": "number",
+                "question": "Which port?",
+                "header": "Port",
+                "defaultValue": 8080,
+                "validation": {
+                  "format": "integer",
+                  "min": 1,
+                  "max": 65535
+                }
+              }
+            ],
+            "type": "object",
+            "required": ["id", "question", "header", "type"],
+            "properties": {
+              "id": {
+                "description": "Stable identifier for this question — used to match answers back to questions",
+                "examples": ["language", "port", "enable-tls"],
+                "type": "string"
+              },
+              "question": {
+                "description": "Full question text — must end with '?' and contain nothing after it. Keep it short (one sentence, ≤10 words); never add notes, examples, or parenthetical remarks after the '?'.",
+                "pattern": "^[^?]*\\?$",
+                "examples": ["Which programming language do you prefer?"],
+                "type": "string"
+              },
+              "header": {
+                "description": "Short tab label (≤12 chars recommended)",
+                "examples": ["Language", "Port", "Enable TLS"],
+                "type": "string"
+              },
+              "required": {
+                "description": "Mark as mandatory — tab shows ✦ and review warns if unanswered (default: false)",
+                "type": "boolean"
+              },
+              "description": {
+                "description": "Optional context shown below the question text (max 4 lines)",
+                "examples": ["This will be used as the default namespace."],
+                "type": "string"
+              },
+              "type": {
+                "const": "number",
+                "type": "string"
+              },
+              "placeholder": {
+                "description": "Hint text when field is empty",
+                "examples": [8080, -20000, 3.141592653589793],
+                "type": "number"
+              },
+              "step": {
+                "description": "↑/↓ increment/decrement step (default: 1)",
+                "type": "number"
+              },
+              "validation": {
+                "anyOf": [
+                  {
+                    "description": "Any finite decimal or integer; optional inclusive min/max bounds",
+                    "examples": [
+                      {
+                        "format": "number"
+                      },
+                      {
+                        "format": "number",
+                        "min": 0,
+                        "max": 100
+                      }
+                    ],
+                    "type": "object",
+                    "required": ["format"],
+                    "properties": {
+                      "format": {
+                        "const": "number",
+                        "type": "string"
+                      },
+                      "min": {
+                        "description": "Minimum allowed value (inclusive)",
+                        "type": "number"
+                      },
+                      "max": {
+                        "description": "Maximum allowed value (inclusive)",
+                        "type": "number"
+                      },
+                      "errorMessage": {
+                        "description": "Custom error message — overrides the built-in message on failure",
+                        "examples": [
+                          "Must be a valid URL",
+                          "Port must be between 1 and 65535"
+                        ],
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "description": "Whole number only (no decimal part); optional inclusive min/max bounds",
+                    "examples": [
+                      {
+                        "format": "integer",
+                        "min": 1
+                      },
+                      {
+                        "format": "integer",
+                        "min": 0,
+                        "max": 255
+                      }
+                    ],
+                    "type": "object",
+                    "required": ["format"],
+                    "properties": {
+                      "format": {
+                        "const": "integer",
+                        "type": "string"
+                      },
+                      "min": {
+                        "description": "Minimum allowed value (inclusive)",
+                        "type": "number"
+                      },
+                      "max": {
+                        "description": "Maximum allowed value (inclusive)",
+                        "type": "number"
+                      },
+                      "errorMessage": {
+                        "description": "Custom error message — overrides the built-in message on failure",
+                        "examples": [
+                          "Must be a valid URL",
+                          "Port must be between 1 and 65535"
+                        ],
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "description": "Single-select numbered list — Space picks; Enter advances. In single-question forms, Enter submits immediately.",
+            "examples": [
+              {
+                "type": "choice",
+                "question": "Which runtime do you target?",
+                "header": "Runtime",
+                "options": [
+                  {
+                    "label": "Node.js"
+                  },
+                  {
+                    "label": "Deno"
+                  },
+                  {
+                    "label": "Bun"
+                  }
+                ],
+                "allowOther": false
+              }
+            ],
+            "type": "object",
+            "required": ["id", "question", "header", "type", "options"],
+            "properties": {
+              "id": {
+                "description": "Stable identifier for this question — used to match answers back to questions",
+                "examples": ["language", "port", "enable-tls"],
+                "type": "string"
+              },
+              "question": {
+                "description": "Full question text — must end with '?' and contain nothing after it. Keep it short (one sentence, ≤10 words); never add notes, examples, or parenthetical remarks after the '?'.",
+                "pattern": "^[^?]*\\?$",
+                "examples": ["Which programming language do you prefer?"],
+                "type": "string"
+              },
+              "header": {
+                "description": "Short tab label (≤12 chars recommended)",
+                "examples": ["Language", "Port", "Enable TLS"],
+                "type": "string"
+              },
+              "required": {
+                "description": "Mark as mandatory — tab shows ✦ and review warns if unanswered (default: false)",
+                "type": "boolean"
+              },
+              "description": {
+                "description": "Optional context shown below the question text (max 4 lines)",
+                "examples": ["This will be used as the default namespace."],
+                "type": "string"
+              },
+              "type": {
+                "const": "choice",
+                "type": "string"
+              },
+              "options": {
+                "minItems": 2,
+                "maxItems": 99,
+                "description": "Selectable options — minimum 2 required",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["label"],
+                  "properties": {
+                    "label": {
+                      "description": "Display text for this option (1–5 words)",
+                      "examples": ["TypeScript", "Python", "Other"],
+                      "type": "string"
+                    },
+                    "description": {
+                      "description": "Brief explanation shown below the label",
+                      "examples": ["Strongly typed superset of JavaScript"],
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "allowOther": {
+                "description": "Append a free-text \"Other…\" entry at the bottom (default: true)",
+                "type": "boolean"
+              }
+            }
+          },
+          {
+            "description": "Multi-select checkboxes — Space toggles; Enter advances to next question",
+            "examples": [
+              {
+                "type": "multichoice",
+                "question": "Which features should be enabled?",
+                "header": "Features",
+                "options": [
+                  {
+                    "label": "Auth"
+                  },
+                  {
+                    "label": "Caching"
+                  },
+                  {
+                    "label": "Logging"
+                  }
+                ],
+                "minSelections": 1
+              }
+            ],
+            "type": "object",
+            "required": ["id", "question", "header", "type", "options"],
+            "properties": {
+              "id": {
+                "description": "Stable identifier for this question — used to match answers back to questions",
+                "examples": ["language", "port", "enable-tls"],
+                "type": "string"
+              },
+              "question": {
+                "description": "Full question text — must end with '?' and contain nothing after it. Keep it short (one sentence, ≤10 words); never add notes, examples, or parenthetical remarks after the '?'.",
+                "pattern": "^[^?]*\\?$",
+                "examples": ["Which programming language do you prefer?"],
+                "type": "string"
+              },
+              "header": {
+                "description": "Short tab label (≤12 chars recommended)",
+                "examples": ["Language", "Port", "Enable TLS"],
+                "type": "string"
+              },
+              "required": {
+                "description": "Mark as mandatory — tab shows ✦ and review warns if unanswered (default: false)",
+                "type": "boolean"
+              },
+              "description": {
+                "description": "Optional context shown below the question text (max 4 lines)",
+                "examples": ["This will be used as the default namespace."],
+                "type": "string"
+              },
+              "type": {
+                "const": "multichoice",
+                "type": "string"
+              },
+              "options": {
+                "minItems": 2,
+                "maxItems": 99,
+                "description": "Selectable options — minimum 2 required",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["label"],
+                  "properties": {
+                    "label": {
+                      "description": "Display text for this option (1–5 words)",
+                      "examples": ["TypeScript", "Python", "Other"],
+                      "type": "string"
+                    },
+                    "description": {
+                      "description": "Brief explanation shown below the label",
+                      "examples": ["Strongly typed superset of JavaScript"],
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "allowOther": {
+                "description": "Append a free-text \"Other…\" entry at the bottom (default: true)",
+                "type": "boolean"
+              },
+              "minSelections": {
+                "description": "Minimum selections required before Tab/submit (default: none)",
+                "minimum": 1,
+                "type": "number"
+              },
+              "maxSelections": {
+                "description": "Maximum selections allowed (default: unlimited)",
+                "type": "number"
+              }
+            }
+          },
+          {
+            "description": "Yes/No toggle — ↑/↓ or Y/N to switch, Enter to confirm",
+            "examples": [
+              {
+                "type": "boolean",
+                "question": "Enable TLS?",
+                "header": "TLS",
+                "defaultValue": true
+              },
+              {
+                "type": "boolean",
+                "question": "Overwrite existing files?",
+                "header": "Overwrite",
+                "defaultValue": false,
+                "true": {
+                  "label": "Overwrite",
+                  "color": "error"
+                },
+                "false": {
+                  "label": "Keep",
+                  "color": "success"
+                }
+              }
+            ],
+            "type": "object",
+            "required": ["id", "question", "header", "type"],
+            "properties": {
+              "id": {
+                "description": "Stable identifier for this question — used to match answers back to questions",
+                "examples": ["language", "port", "enable-tls"],
+                "type": "string"
+              },
+              "question": {
+                "description": "Full question text — must end with '?' and contain nothing after it. Keep it short (one sentence, ≤10 words); never add notes, examples, or parenthetical remarks after the '?'.",
+                "pattern": "^[^?]*\\?$",
+                "examples": ["Which programming language do you prefer?"],
+                "type": "string"
+              },
+              "header": {
+                "description": "Short tab label (≤12 chars recommended)",
+                "examples": ["Language", "Port", "Enable TLS"],
+                "type": "string"
+              },
+              "required": {
+                "description": "Mark as mandatory — tab shows ✦ and review warns if unanswered (default: false)",
+                "type": "boolean"
+              },
+              "description": {
+                "description": "Optional context shown below the question text (max 4 lines)",
+                "examples": ["This will be used as the default namespace."],
+                "type": "string"
+              },
+              "type": {
+                "const": "boolean",
+                "type": "string"
+              },
+              "defaultValue": {
+                "description": "Initial selection shown on focus (default: true = YES)",
+                "type": "boolean"
+              },
+              "true": {
+                "type": "object",
+                "required": ["label"],
+                "properties": {
+                  "label": {
+                    "description": "Display label",
+                    "examples": ["Yes", "Confirm"],
+                    "type": "string"
+                  },
+                  "color": {
+                    "description": "Theme color (default: 'success' for true, 'error' for false)",
+                    "examples": ["success", "error", "warning", "accent"],
+                    "type": "string"
+                  }
+                }
+              },
+              "false": {
+                "type": "object",
+                "required": ["label"],
+                "properties": {
+                  "label": {
+                    "description": "Display label",
+                    "examples": ["Yes", "Confirm"],
+                    "type": "string"
+                  },
+                  "color": {
+                    "description": "Theme color (default: 'success' for true, 'error' for false)",
+                    "examples": ["success", "error", "warning", "accent"],
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
