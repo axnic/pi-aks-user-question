@@ -27,7 +27,7 @@
  *   FormResult                  — full result passed to done() on form close
  */
 
-import type { Static } from "@sinclair/typebox";
+import type { Static } from "typebox";
 import type {
   BooleanCustomizableOptionSchema,
   BooleanQuestionSchema,

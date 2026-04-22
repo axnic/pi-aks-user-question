@@ -27,7 +27,7 @@
  *   AskUserQuestionParams       — root params object { questions: QuestionSchema[] }
  */
 
-import { Type } from "@sinclair/typebox";
+import { Type } from "typebox";
 import { NumericValidationSchema, StringValidationSchema } from "./validation";
 
 // ── Shared building blocks ────────────────────────────────────────────────────

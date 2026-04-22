@@ -6,7 +6,7 @@
  *   2. `placeholder` (text question) must be a single line (no \n / \r).
  */
 
-import { Value } from "@sinclair/typebox/value";
+import { Value } from "typebox/value";
 import { describe, expect, it } from "vitest";
 import { AskUserQuestionParams, TextQuestionSchema } from "./schema";
 

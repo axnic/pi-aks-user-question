@@ -19,7 +19,7 @@
  */
 
 import * as net from "node:net";
-import { type Static, Type } from "@sinclair/typebox";
+import { type Static, Type } from "typebox";
 import { z } from "zod";
 
 // ── Shared building blocks ────────────────────────────────────────────────────
