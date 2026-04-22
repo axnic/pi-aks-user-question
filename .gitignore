@@ -162,3 +162,6 @@ GEMINI.md
 # ~/.pi/ lives in $HOME and is never in the repo, but guard against accidental
 # local overrides being committed.
 .pi/
+
+# Demo sandbox and VHS output staging
+.demo/

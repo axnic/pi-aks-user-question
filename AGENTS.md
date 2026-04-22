@@ -19,6 +19,8 @@ mise run lint             # run Trunk (check only)
 mise run lint:fix         # auto-fix all lint issues
 mise run build            # bundle extension to dist/index.js
 mise run docs:schema      # regenerate docs/schema.json from TypeBox schemas
+mise run pi:sandbox       # launch pi in an isolated demo home
+mise run docs:demo        # render docs/demo/demo.tape with VHS
 ```
 
 Linter configs: `.trunk/trunk.yaml` (Trunk — manages all linters), `.commitlintrc.js` (commit messages).
@@ -27,6 +29,37 @@ Linter configs: `.trunk/trunk.yaml` (Trunk — manages all linters), `.commitlin
 > imports under `src/` into `dist/index.js` via esbuild. During local development, pi loads
 > `.ts` files directly — no build is needed. The compiled `dist/` is used for distribution
 > and production deployments.
+
+## Demo recording
+
+The repository includes a small VHS scaffold for recording a terminal demo from
+code.
+
+`vhs` is intentionally external to `mise` because it is only needed when
+updating the presentation, not for normal development. Install it with your
+system package manager before running `mise run docs:demo`.
+
+Run `mise run pi:sandbox -- --scenarii docs/demo/basic.scenarii.json` to launch
+`pi` with `HOME=.demo/pi-home`, a scrubbed environment, `--no-skills`,
+`--no-prompt-templates`, and `.demo/pi-home` as the working directory. The
+launcher creates the symlink
+`.demo/pi-home/.pi/agent/extensions/pi-aks-user-question -> <repo root>`,
+loads a second extension explicitly for the canned in-process provider, writes
+the selected scenarii into `.demo/pi-home/.pi/agent/sandboxed-pi/scenarii.json`,
+and regenerates a local `.demo/pi-home/.pi/agent/models.json` so Pi selects the
+demo provider from a clean sandbox state. That keeps the demo isolated from any
+personal `~/.pi` configuration and avoids loading repo-level skills or AGENTS
+files.
+
+The scenarii file is mandatory. It must be a non-empty JSON array of objects
+with either `user`/`assistant` strings (text reply) or `user`/`tool_call` (tool
+invocation), for example `docs/demo/basic.scenarii.json`. If the live prompt
+does not exactly match one of the configured `user` strings, the provider
+replies with the list of allowed prompts instead of inventing a new answer.
+
+`mise run docs:demo` renders `docs/demo/demo.tape`. The checked-in tape is only
+a starting point so the command path stays reproducible; edit it with the real
+demo flow when you are ready to record the final presentation.
 
 ## Testing
 

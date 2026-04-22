@@ -130,6 +130,28 @@ run = "npx tsx scripts/generate-schema.ts"
 sources = ["src/schema.ts", "src/validation.ts", "scripts/generate-schema.ts"]
 
 # =============================================================================
+# Demo recording
+# =============================================================================
+# pi:sandbox (dp)  — launch pi with an isolated HOME under .demo/pi-home, a
+#                    symlinked extension entry that points back to this repo,
+#                    and a canned in-process provider configured as the default
+#                    model for deterministic demo output.
+# docs:demo  (dd)  — render docs/demo/demo.tape with an externally-installed
+#                    VHS binary so the demo assets can be updated reproducibly
+#                    from code.
+# =============================================================================
+
+[tasks."pi:sandbox"]
+description = "Launch pi with an isolated demo home that only loads this repo as an extension"
+alias = "dp"
+run = "node scripts/sandboxed-pi/index.mjs"
+
+[tasks."docs:demo"]
+description = "Render the VHS demo cassette in docs/demo/demo.tape"
+alias = "dd"
+run = "vhs docs/demo/demo.tape"
+
+# =============================================================================
 # Dependencies
 # =============================================================================
 # deps:upgrade  (du)  — interactively bump all packages to their latest
