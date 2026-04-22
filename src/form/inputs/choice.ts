@@ -24,8 +24,8 @@
  *   - Enter: always advances regardless of selection state.
  *
  * Multi-select (multi=true):
- *   - Space: toggle selected/deselected freely.
- *   - Enter: always advances regardless of selection state.
+ *   - Space: toggle selected/deselected freely; blocked once maxSelections is reached.
+ *   - Enter: blocked until selection count ≥ minSelections (shows inline error).
  *
  * Unhandled keys (Tab, ←/→) return false — Form/Tabs handle them.
  */
@@ -82,6 +82,8 @@ export class ChoiceInput extends BaseInput {
   protected _otherText = "";
   /** Whether this is a multi-select (`true`) or single-select (`false`). */
   private readonly _multi: boolean;
+  /** Current selection constraint error (minSelections/maxSelections), if any. */
+  private _selectionError: string | undefined;
 
   constructor(
     private readonly _q: ChoiceQuestion | MultiChoiceQuestion,
@@ -121,6 +123,19 @@ export class ChoiceInput extends BaseInput {
         this._q.allowOther !== false &&
         this._cursorIdx === this._q.options.length;
       if (isOtherRow) {
+        if (this._multi) {
+          const mq = this._q as MultiChoiceQuestion;
+          // Block if at maxSelections and Other is not already counted.
+          if (
+            mq.maxSelections !== undefined &&
+            this._selectionCount() >= mq.maxSelections &&
+            !this._otherText.trim()
+          ) {
+            this._selectionError = `Maximum ${mq.maxSelections} item${mq.maxSelections !== 1 ? "s" : ""} selected`;
+            this._callbacks.onRefresh();
+            return true;
+          }
+        }
         this._otherMode = true;
         this._editor.setText(this._otherText);
         this._callbacks.onRefresh();
@@ -132,8 +147,18 @@ export class ChoiceInput extends BaseInput {
           // Multi-select: toggle.
           if (this._selected.has(opt.label)) {
             this._selected.delete(opt.label);
+            this._selectionError = undefined;
           } else {
-            this._selected.add(opt.label);
+            const mq = this._q as MultiChoiceQuestion;
+            if (
+              mq.maxSelections !== undefined &&
+              this._selectionCount() >= mq.maxSelections
+            ) {
+              this._selectionError = `Maximum ${mq.maxSelections} item${mq.maxSelections !== 1 ? "s" : ""} selected`;
+            } else {
+              this._selected.add(opt.label);
+              this._selectionError = undefined;
+            }
           }
         } else {
           // Single-select: clear selection + other text, then pick. Cannot devalidate.
@@ -149,12 +174,24 @@ export class ChoiceInput extends BaseInput {
       }
     }
 
-    // Enter: advance, but block for required questions with no selection.
+    // Enter: advance, but block for minSelections constraint or required with no selection.
     if (matchesKey(data, Key.enter)) {
+      if (this._multi) {
+        const mq = this._q as MultiChoiceQuestion;
+        if (
+          mq.minSelections !== undefined &&
+          this._selectionCount() < mq.minSelections
+        ) {
+          this._selectionError = `Select at least ${mq.minSelections} item${mq.minSelections !== 1 ? "s" : ""}`;
+          this._callbacks.onRefresh();
+          return true;
+        }
+      }
       if (this._q.required && !this.isAnswered()) {
         this._callbacks.onRefresh(); // block silently — ✦ in tab bar signals required
         return true;
       }
+      this._selectionError = undefined;
       this._callbacks.onAdvance();
       return true;
     }
@@ -187,7 +224,18 @@ export class ChoiceInput extends BaseInput {
       this._otherText = trimmed;
       if (!this._multi) {
         this._selected.clear();
+        this._callbacks.onAdvance();
+        return true;
       }
+      // Multi-select: check minSelections before advancing.
+      const mq = this._q as MultiChoiceQuestion;
+      const count = this._selectionCount(); // _otherText now counts (+1)
+      if (mq.minSelections !== undefined && count < mq.minSelections) {
+        this._selectionError = `Select at least ${mq.minSelections} item${mq.minSelections !== 1 ? "s" : ""}`;
+        this._callbacks.onRefresh();
+        return true;
+      }
+      this._selectionError = undefined;
       this._callbacks.onAdvance();
       return true;
     }
@@ -345,6 +393,16 @@ export class ChoiceInput extends BaseInput {
   }
 
   /** @inheritdoc */
+  getValidationError(): string | undefined {
+    return this._selectionError;
+  }
+
+  /** Total number of user selections, including the "Other..." text when set. */
+  private _selectionCount(): number {
+    return this._selected.size + (this._otherText.trim() !== "" ? 1 : 0);
+  }
+
+  /** @inheritdoc */
   getTypedValue(): string[] | string {
     const sel = [...this._selected];
     const other = this._otherText.trim();
@@ -374,15 +432,35 @@ export class ChoiceInput extends BaseInput {
         { keys: [Key.escape], action: "cancel" },
       ];
     }
+    if (this._multi) {
+      const mq = this._q as MultiChoiceQuestion;
+      const count = this._selectionCount();
+      let enterAction = "next";
+      if (mq.minSelections !== undefined && count < mq.minSelections) {
+        enterAction = `next (select at least ${mq.minSelections})`;
+      } else if (mq.maxSelections !== undefined) {
+        enterAction = `next (${count}/${mq.maxSelections} selected)`;
+      }
+      return [
+        { keys: [Key.up, Key.down], action: "navigate" },
+        { keys: [Key.space], action: "toggle" },
+        { keys: [Key.enter], action: enterAction },
+      ];
+    }
     return [
       { keys: [Key.up, Key.down], action: "navigate" },
-      { keys: [Key.space], action: this._multi ? "toggle" : "select" },
+      { keys: [Key.space], action: "select" },
       { keys: [Key.enter], action: "next" },
     ];
   }
 
   /** @inheritdoc */
   isAnswered(): boolean {
-    return this._selected.size > 0 || this._otherText.trim() !== "";
+    const count = this._selectionCount();
+    if (this._multi) {
+      const mq = this._q as MultiChoiceQuestion;
+      return count >= (mq.minSelections ?? 1);
+    }
+    return count > 0;
   }
 }
