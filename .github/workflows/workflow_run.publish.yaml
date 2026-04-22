@@ -153,23 +153,18 @@ jobs:
           pnpm publish \
             --provenance \
             --access public \
-            --no-git-checks \
-            --report-summary
+            --no-git-checks
 
       # ── Sign artefacts with cosign (keyless OIDC) ────────────────────────
       - name: 🔧 Install cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
 
-      - name: ✍️ Sign SBOM and publish summary
+      - name: ✍️ Sign SBOM
         run: |
           cosign sign-blob --yes \
             --output-signature sbom-extension.json.sig \
             --output-certificate sbom-extension.json.crt \
             sbom-extension.json
-          cosign sign-blob --yes \
-            --output-signature pnpm-publish-summary.json.sig \
-            --output-certificate pnpm-publish-summary.json.crt \
-            pnpm-publish-summary.json
 
       # ── Attach artefacts and publish release ─────────────────────────────
       - name: 📤 Attach artefacts to GitHub Release
@@ -177,10 +172,7 @@ jobs:
           gh release upload "${{ steps.tag.outputs.name }}" \
             sbom-extension.json \
             sbom-extension.json.sig \
-            sbom-extension.json.crt \
-            pnpm-publish-summary.json \
-            pnpm-publish-summary.json.sig \
-            pnpm-publish-summary.json.crt
+            sbom-extension.json.crt
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
