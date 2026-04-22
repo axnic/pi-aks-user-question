@@ -56,6 +56,14 @@ describe("schema — question field pattern", () => {
     const q = { ...baseChoice, question: "Do you want A? Or B?" };
     expect(Value.Check(AskUserQuestionParams, { questions: [q] })).toBe(false);
   });
+
+  it("rejects a question without a trailing '?'", () => {
+    const q = {
+      ...baseChoice,
+      question: "Choose a runtime",
+    };
+    expect(Value.Check(AskUserQuestionParams, { questions: [q] })).toBe(false);
+  });
 });
 
 // ── placeholder single-line constraint ───────────────────────────────────────

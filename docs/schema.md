@@ -21,7 +21,7 @@ All question types share these base fields:
 | Field         | Type      | Required | Description                                                    |
 | ------------- | --------- | -------- | -------------------------------------------------------------- |
 | `id`          | `string`  | yes      | Stable identifier — used to match answers back to questions    |
-| `question`    | `string`  | yes      | Full question text (≤10 words, must end with `?` or no `?`)    |
+| `question`    | `string`  | yes      | Full question text (≤10 words, must end with a trailing `?`)   |
 | `header`      | `string`  | yes      | Short tab label (≤12 chars recommended)                        |
 | `type`        | `string`  | yes      | One of: `text`, `number`, `choice`, `multichoice`, `boolean`   |
 | `required`    | `boolean` | no       | Mark as mandatory — tab shows ✦, review warns (default: false) |
