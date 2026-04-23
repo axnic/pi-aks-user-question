@@ -81,12 +81,12 @@ auto = true
 [tasks.lint]
 description = "Lint all files with Trunk (check only)"
 alias = "l"
-run = "trunk check --all"
+run = "pnpm run lint"
 
 [tasks."lint:fix"]
 description = "Lint all files with Trunk and auto-fix safe issues"
 alias = "lf"
-run = "trunk check --all --fix"
+run = "pnpm run lint:fix"
 
 # -----------------------------------------------------------------------------
 # commitlint — validates commit messages against the conventional commit rules
@@ -100,7 +100,7 @@ run = "trunk check --all --fix"
 [tasks."lint:commitlint"]
 description = "Validate the last commit message against conventional commit rules"
 alias = "lc"
-run = "commitlint --from HEAD~1 --to HEAD --verbose"
+run = "pnpm exec commitlint --from HEAD~1 --to HEAD --verbose"
 
 # =============================================================================
 # Build
@@ -112,8 +112,7 @@ run = "commitlint --from HEAD~1 --to HEAD --verbose"
 [tasks.build]
 description = "Bundle the extension to dist/index.js with esbuild"
 alias = "b"
-run = "node build.mjs"
-sources = ["src/**/*.ts", "build.mjs"]
+run = "pnpm run build"
 
 # =============================================================================
 # Documentation
@@ -126,8 +125,7 @@ sources = ["src/**/*.ts", "build.mjs"]
 [tasks."docs:schema"]
 description = "Regenerate docs/schema.json from the TypeBox schemas in src/schema.ts"
 alias = "ds"
-run = "npx tsx scripts/generate-schema.ts"
-sources = ["src/schema.ts", "src/validation.ts", "scripts/generate-schema.ts"]
+run = "pnpx tsx scripts/generate-schema.ts"
 
 # =============================================================================
 # Dependencies

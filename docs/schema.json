@@ -489,7 +489,7 @@
                         "type": "string"
                       },
                       "pattern": {
-                        "description": "JS regex pattern without delimiters — capped at 500 chars to prevent ReDoS",
+                        "description": "JS regex pattern without delimiters — capped at 500 chars. Note: pattern length alone does not prevent ReDoS; input is also capped to limit backtracking.",
                         "examples": ["^[A-Z][a-z]+$", "^\\d{4}-\\d{2}-\\d{2}$"],
                         "maxLength": 500,
                         "type": "string"

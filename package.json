@@ -41,15 +41,15 @@
     "README.md"
   ],
   "scripts": {
-    "build": "mise run build",
+    "build": "node build.mjs",
     "clean": "rimraf dist",
     "prepublishOnly": "pnpm run clean && pnpm run build && pnpm test && node scripts/prepare-publish-readmes.mjs prepare",
     "postpublish": "node scripts/prepare-publish-readmes.mjs restore",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "mise run lint",
-    "lint:fix": "mise run lint:fix"
+    "lint": "pnpm exec trunk check --all",
+    "lint:fix": "pnpm exec trunk check --all --fix"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
