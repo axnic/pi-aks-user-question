@@ -1,6 +1,6 @@
 {
   "name": "@axnic/pi-aks-user-question",
-  "version": "0.2.0-rc.3",
+  "version": "0.2.0-rc.4",
   "description": "Pi extension — lets LLMs ask structured questions to the user via an interactive TUI form",
   "author": "axnic",
   "license": "Apache-2.0",
