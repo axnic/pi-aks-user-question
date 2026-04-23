@@ -68,7 +68,8 @@
   "pi": {
     "extensions": [
       "./dist/index.js"
-    ]
+    ],
+    "video": "https://raw.githubusercontent.com/axnic/pi-aks-user-question/refs/heads/main/docs/assets/demo.webm"
   },
   "engines": {
     "node": ">=24"
