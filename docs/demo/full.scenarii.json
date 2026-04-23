@@ -1,0 +1,140 @@
+[
+  {
+    "user": "Help me configure a new server",
+    "tool_call": {
+      "name": "ask_user_question",
+      "arguments": {
+        "questions": [
+          {
+            "id": "server_name",
+            "type": "text",
+            "question": "What should the server be named?",
+            "header": "Server name",
+            "placeholder": "e.g. my-server-01",
+            "required": true,
+            "validation": {
+              "format": "regex",
+              "pattern": "^[a-z][a-z0-9-]{1,28}[a-z0-9]$",
+              "errorMessage": "3–30 chars: lowercase letters, digits, hyphens; no leading/trailing hyphens"
+            }
+          },
+          {
+            "id": "admin_email",
+            "type": "text",
+            "question": "What is the administrator email?",
+            "header": "Admin email",
+            "placeholder": "e.g. ops@example.com",
+            "required": true,
+            "description": "Alerts and certificates will be sent to this address.",
+            "validation": {
+              "format": "email",
+              "deny": ["example.com", "test.com", "localhost.localdomain"]
+            }
+          },
+          {
+            "id": "client_ip",
+            "type": "text",
+            "question": "Which IP address should be whitelisted?",
+            "header": "Client IP",
+            "placeholder": "e.g. 203.0.113.42",
+            "description": "Private RFC-1918 ranges are not allowed.",
+            "validation": {
+              "format": "ipv4",
+              "denylist": ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+            }
+          },
+          {
+            "id": "port",
+            "type": "number",
+            "question": "Which port should the server listen on?",
+            "header": "Port",
+            "placeholder": 8080,
+            "required": true,
+            "description": "Ports 1–1023 require root. Recommended range: 1024–49151.",
+            "step": 1,
+            "validation": {
+              "format": "integer",
+              "min": 1024,
+              "max": 65535
+            }
+          },
+          {
+            "id": "tls",
+            "type": "boolean",
+            "question": "Should TLS be enabled?",
+            "header": "TLS",
+            "required": true,
+            "defaultValue": true,
+            "true": { "label": "Enable TLS", "color": "success" },
+            "false": { "label": "Disable TLS", "color": "error" }
+          },
+          {
+            "id": "environment",
+            "type": "choice",
+            "question": "Which environment is this server for?",
+            "header": "Environment",
+            "required": true,
+            "allowOther": false,
+            "options": [
+              {
+                "label": "Development",
+                "description": "Local dev — no external traffic"
+              },
+              {
+                "label": "Staging",
+                "description": "Pre-production — mirrors prod config"
+              },
+              {
+                "label": "Production",
+                "description": "Live — handle with care"
+              }
+            ]
+          },
+          {
+            "id": "features",
+            "type": "multichoice",
+            "question": "Which optional features should be enabled?",
+            "header": "Features",
+            "allowOther": true,
+            "minSelections": 1,
+            "options": [
+              {
+                "label": "Auth",
+                "description": "JWT-based authentication middleware"
+              },
+              {
+                "label": "Rate limiting",
+                "description": "Token-bucket per IP"
+              },
+              {
+                "label": "Metrics",
+                "description": "Prometheus /metrics endpoint"
+              },
+              {
+                "label": "Request logging",
+                "description": "Structured JSON access logs"
+              },
+              {
+                "label": "Health check",
+                "description": "GET /healthz liveness probe"
+              }
+            ]
+          },
+          {
+            "id": "api_url",
+            "type": "text",
+            "question": "What is the upstream API base URL?",
+            "header": "API URL",
+            "placeholder": "e.g. https://api.example.com",
+            "description": "Must use HTTPS. The server proxies all /api calls here.",
+            "validation": {
+              "format": "url",
+              "protocols": ["https"]
+            }
+          }
+        ]
+      }
+    },
+    "tool_return_observation": "Your server has been configured successfully. Here is a summary of what you entered:\n\n{{ tool.response }}"
+  }
+]

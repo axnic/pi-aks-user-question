@@ -47,6 +47,7 @@
     "postpublish": "node scripts/prepare-publish-readmes.mjs restore",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:with-pi": "node scripts/sandboxed-pi/index.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "pnpm exec trunk check --all",
     "lint:fix": "pnpm exec trunk check --all --fix"
@@ -67,7 +68,8 @@
   "pi": {
     "extensions": [
       "./dist/index.js"
-    ]
+    ],
+    "video": "https://raw.githubusercontent.com/axnic/pi-aks-user-question/refs/heads/main/docs/assets/demo.webm"
   },
   "engines": {
     "node": ">=24"

@@ -402,8 +402,19 @@ export class Form {
    *   - `value`      — the typed answer, or `null` if the question was skipped.
    */
   private _collectAndFinish(cancelled: boolean): void {
+    // Only deactivate the currently active input — previously deactivated inputs
+    // already have their values committed. Re-deactivating them would overwrite
+    // those saved values with whatever the shared Editor currently holds (which
+    // is the last active input's text, potentially empty or belonging to a
+    // different question), causing all prior answers to appear as null.
+    if (!this._tabs.isOnReview) {
+      const activeQ = this._questions[this._tabs.activeIndex];
+      if (activeQ) {
+        this._deactivateInput(activeQ.input);
+      }
+    }
+
     for (const fq of this._questions) {
-      this._deactivateInput(fq.input);
       fq.input.dispose();
     }
 

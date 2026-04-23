@@ -128,6 +128,33 @@ alias = "ds"
 run = "pnpx tsx scripts/generate-schema.ts"
 
 # =============================================================================
+# Demo recording
+# =============================================================================
+# pi:sandbox      — launch pi with an isolated HOME under .demo/pi-home, a
+#                   symlinked extension entry that points back to this repo,
+#                   and a canned in-process provider configured as the default
+#                   model for deterministic demo output.
+# docs:vhs        — render docs/demo/demo.tape with an externally-installed
+#                   VHS binary so the demo assets can be updated reproducibly
+#                   from code.
+# vhs:pi          — launch the sandboxed pi with the demo scenario loaded, used
+#                   inside the cassette.
+# =============================================================================
+
+[tasks."pi:sandbox"]
+description = "Launch pi with an isolated demo home that only loads this repo as an extension"
+run = "node scripts/sandboxed-pi/index.mjs"
+
+[tasks."docs:vhs"]
+description = "Render the VHS demo cassette in docs/demo/demo.tape"
+run = "vhs docs/demo/demo.tape"
+
+[tasks."vhs:pi"]
+description = "Run sandboxed pi with the demo scenario loaded for live testing"
+hide = true
+run = "node scripts/sandboxed-pi/index.mjs --scenarii docs/demo/full.scenarii.json"
+
+# =============================================================================
 # Dependencies
 # =============================================================================
 # deps:upgrade  (du)  — interactively bump all packages to their latest
