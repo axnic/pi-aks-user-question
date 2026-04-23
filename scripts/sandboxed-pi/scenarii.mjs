@@ -196,7 +196,7 @@ export function buildToolResultReply(entries, triggerPrompt, toolResultText) {
   const template = match?.tool_return_observation;
   const text = template
     ? template.replaceAll("{{ tool.response }}", toolResultText)
-    : "Tool completed";
+    : "Tool completed.";
 
   return { type: "text", text };
 }
