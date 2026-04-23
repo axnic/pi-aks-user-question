@@ -31,6 +31,12 @@
 
 ---
 
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="pi-aks-user-question demo" />
+</p>
+
+---
+
 ## Why
 
 When an LLM needs user input, it typically asks a plain-text question and waits for a free-form reply. This works for simple follow-ups but quickly breaks down when the agent needs structured data — picking from a set of options, entering validated URLs, confirming a yes/no, or answering multiple related questions at once.
