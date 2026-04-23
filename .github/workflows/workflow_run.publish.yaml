@@ -150,10 +150,17 @@ jobs:
 
       - name: 🚀 Publish all workspace packages
         run: |
+          TAG="${{ steps.tag.outputs.name }}"
+          if [[ "$TAG" == *"-"* ]]; then
+            NPM_TAG="next"
+          else
+            NPM_TAG="latest"
+          fi
           pnpm publish \
             --provenance \
             --access public \
-            --no-git-checks
+            --no-git-checks \
+            --tag "$NPM_TAG"
 
       # ── Sign artefacts with cosign (keyless OIDC) ────────────────────────
       - name: 🔧 Install cosign
